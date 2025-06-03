@@ -1,0 +1,30 @@
+package main
+
+
+templ Contact_table(contacts_set []Contact) {
+<table>
+    <thead>
+        <tr>
+            <th>First</th>
+            <th>Last</th>
+            <th>Phone</th>
+            <th>Email</th>
+        </tr>
+    </thead>
+    <tbody>
+
+        for _, contact range := contacts_set {
+        <tr>
+            <td>{{ contact.first }}</td>
+            <td>{{ contact.last }}</td>
+            <td>{{ contact.phone }}</td>
+            <td>{{ contact.email }}</td>
+            <td><a href="/contacts/{{ contact.id }}/edit">Edit</a>
+                <a href="/contacts/{{ contact.id }}">View</a>
+            </td>
+        </tr>
+        }
+
+    </tbody>
+</table>
+}
