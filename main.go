@@ -23,7 +23,7 @@ func main() {
 	//init logger
 	log = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	//loaf contacts
+	//load contacts
 	err := load_contacts()
 	if err != nil {
 		log.Error("Error in load_contacts()", "error", err)
@@ -96,12 +96,11 @@ func contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Extract id from request query
 	id_string := r.PathValue("id")
+
 	if id_string == "" {
 		//Default response
 		w.Header().Set("Content-Type", "text/html")
-
-		contact_table := Contact_table(contacts_set)
-		err := contact_table.Render(context.Background(), w)
+		err := contact_table(contacts_set).Render(context.Background(), w)
 
 		// _, err := w.Write(contacts_data)
 		if err != nil {
@@ -109,46 +108,47 @@ func contact_handler(w http.ResponseWriter, r *http.Request) {
 			log.Error("contact_handler: error in default w.Write()", "error", err)
 			return
 		}
+		return
+	}
 
-	} else {
-		//Parse id
-		id_int, err := strconv.Atoi(id_string)
-		if err != nil {
-			http.Error(w, "Invalid id", http.StatusBadRequest)
-			log.Info("contact_handler: could not parse id", "error", err)
-			return
+	//Parse id
+	id_int, err := strconv.Atoi(id_string)
+	if err != nil {
+		http.Error(w, "Invalid id", http.StatusBadRequest)
+		log.Info("contact_handler: could not parse id", "error", err)
+
+		return
+	}
+
+	//Search for specific contact
+	var c Contact
+	for _, contact := range contacts_set {
+		if contact.ID == id_int {
+			c = contact
+			break
 		}
+	}
 
-		//Search specific contact
-		var found = -1
-		for _, contact := range contacts_set {
+	if c.ID == -1 {
+		http.Error(w, "Error, contact not found in database", http.StatusNotFound)
+		log.Info("contact_handler: contact not found")
+		return
+	}
 
-			if contact.ID == id_int {
-				found = id_int
-				contact_data, err := json.Marshal(contact)
-				if err != nil {
-					http.Error(w, "Error providing contact information", http.StatusInternalServerError)
-					log.Error("contact_handler: error in json.Marshall", "error", err)
-					return
-				}
+	contact_data, err := json.Marshal(c)
+	if err != nil {
+		http.Error(w, "Error providing contact information", http.StatusInternalServerError)
+		log.Error("contact_handler: error in json.Marshall", "error", err)
+		return
+	}
 
-				// Show response
-				w.Header().Set("Content-Type", "text/html")
+	// Show response
+	w.Header().Set("Content-Type", "text/html")
 
-				_, err = w.Write(contact_data)
-				if err != nil {
-					http.Error(w, "Error providing contact information", http.StatusInternalServerError)
-					log.Error("contact_handler: error in w.Write()", "error", err)
-					return
-				}
-				break
-			}
-		}
-
-		if found == -1 {
-			http.Error(w, "Error, contact not found in database", http.StatusNotFound)
-			log.Info("contact_handler: contact not found")
-			return
-		}
+	_, err = w.Write(contact_data)
+	if err != nil {
+		http.Error(w, "Error providing contact information", http.StatusInternalServerError)
+		log.Error("contact_handler: error in w.Write()", "error", err)
+		return
 	}
 }
