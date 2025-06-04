@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "*.templ": "plaintext",
+        "*.gohtml": "plaintext"
+    },
+    "[plaintext]": {
+        "editor.formatOnSave": false
+    }
+}
