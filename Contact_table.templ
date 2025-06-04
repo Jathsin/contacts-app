@@ -15,12 +15,12 @@ templ Contact_table(contacts_set []Contact) {
 
         for _, contact := range contacts_set {
             <tr>
-                <td>{{ contact.ID }}</td>
-                <td>{{ contact.Name }}</td>
-                <td>{{ contact.Phone }}</td>
-                <td>{{ contact.Email }}</td>
-                <td><a href="/contacts/{{ contact.id }}/edit">Edit</a>
-                    <a href="/contacts/{{ contact.id }}">View</a>
+                <td>{ contact.ID }</td>
+                <td>{ contact.Name }</td>
+                <td>{ contact.Phone }</td>
+                <td>{ contact.Email }</td>
+                <td><a href="/contacts/{ contact.ID }/edit">Edit</a>
+                    <a href="/contacts/{ contact.ID }">View</a>
                 </td>
             </tr>
         }
