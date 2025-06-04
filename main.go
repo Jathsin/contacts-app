@@ -143,7 +143,7 @@ func contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Show response
-	w.Header().Set("Content-Type", "text/html")
+	w.Header().Set("Content-Type", "application/json")
 
 	_, err = w.Write(contact_data)
 	if err != nil {
