@@ -17,7 +17,7 @@ import (
 
 var log *slog.Logger
 
-var contacts_set []Contact
+var contacts []Contact
 var contacts_data []byte
 
 type app struct {
@@ -59,6 +59,8 @@ func main() {
 
 	mux.HandleFunc("GET /contact", app.contact_handler)
 
+	// mux.HandleFunc("POST /contact", app.add_contact_handler)
+
 	mux.HandleFunc("GET /contact/{id}", app.contact_handler)
 
 	// Start server
@@ -91,63 +93,37 @@ type Contact struct {
 // /contacts/{id}
 func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
 
-	// Extract id from request query
 	id_string := r.PathValue("id")
 
-	if id_string == "" {
-		//Default response
-		w.Header().Set("Content-Type", "text/html")
+	var contact_search []Contact
 
-		err := app.Templates.Render(w, "index", contacts_set)
-		//_, err := w.Write(contacts_data)
+	if id_string == "" {
+		contact_search = contacts
+	} else {
+		c := Contact{}
+		err := find_contact(id_string, &c)
 		if err != nil {
-			http.Error(w, "Error providing contacts", http.StatusInternalServerError)
-			log.Error("contact_handler: error in default w.Write()", "error", err)
+			//@TODO: preguntar a Pablo cómo distinguir errores
+			http.Error(w, "Error finding contact: "+err.Error(), http.StatusBadRequest)
+			log.Error("contact_handler: error in app.Templates.Render()", "error", err)
 			return
 		}
-		return
+
+		contact_search = append(contact_search, c)
 	}
 
-	//Parse id
-	id_int, err := strconv.Atoi(id_string)
-	if err != nil {
-		http.Error(w, "Invalid id", http.StatusBadRequest)
-		log.Info("contact_handler: could not parse id", "error", err)
+	//Show contact information response
+	w.Header().Set("Content-Type", "text/html")
 
-		return
-	}
-	//Search for specific contact
-	var c Contact
-	for _, contact := range contacts_set {
-		if contact.ID == id_int {
-			c = contact
-			break
-		}
-	}
-	if c.ID == -1 {
-		http.Error(w, "Error, contact not found in database", http.StatusNotFound)
-		log.Info("contact_handler: contact not found")
-		return
-	}
-
-	// Parse response
-	contact_data, err := json.Marshal(c)
+	err := app.Templates.Render(w, "index", contact_search)
 	if err != nil {
 		http.Error(w, "Error providing contact information", http.StatusInternalServerError)
-		log.Error("contact_handler: error in json.Marshall", "error", err)
-		return
-	}
-
-	// Show response
-	w.Header().Set("Content-Type", "application/json")
-
-	_, err = w.Write(contact_data)
-	if err != nil {
-		http.Error(w, "Error providing contact information", http.StatusInternalServerError)
-		log.Error("contact_handler: error in w.Write()", "error", err)
+		log.Error("contact_handler: error in app.Templates.Render()", "error", err)
 		return
 	}
 }
+
+// func (app *app) add_contact_handler(w http.ResponseWriter, r *http.Request) {}
 
 // Auxiliar functions
 func logging(f http.Handler) http.Handler {
@@ -174,10 +150,27 @@ func load_contacts() error {
 		return fmt.Errorf("contact_handler: error in osReadFile: %w", err)
 	}
 
-	err = json.Unmarshal(contacts_data, &contacts_set)
+	err = json.Unmarshal(contacts_data, &contacts)
 	if err != nil {
 		return fmt.Errorf("contact_handler: error in json.Unmarhsall: %w", err)
 	}
 
 	return nil
+}
+
+func find_contact(id string, contact *Contact) error {
+
+	//Parse id
+	id_int, err := strconv.Atoi(id)
+	if err != nil {
+		return fmt.Errorf("find_contact: error in strconv.Atoi(id): %w", err)
+	}
+	//Search for specific contact
+	for _, c := range contacts {
+		if c.ID == id_int {
+			*contact = c
+			return nil
+		}
+	}
+	return fmt.Errorf("find_contact: contact not found")
 }

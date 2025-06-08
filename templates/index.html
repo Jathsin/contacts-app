@@ -3,36 +3,44 @@
 <html lang="en">
 
 <head>
+    <title>Document</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <script src="https://unpkg.com/htmx.org@2.0.4"
+        integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+        crossorigin="anonymous"></script>
+
 </head>
 
 <body>
-    <table>
-        <thead>
-            <tr>
-                <th>First</th>
-                <th>Last </th>
-                <th>Phone</th>
-                <th>Email</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{ range . }}
-            <tr>
-                <td>{{ .ID }}</td>
-                <td>{{ .Name }}</td>
-                <td>{{ .Phone }}</td>
-                <td>{{ .Email }}</td>
-                <td><a href="/contacts/{{ .ID }}/edit">Edit</a>
-                    <a href="/contacts/{{ .ID }}">View</a>
-                </td>
-            </tr>
-            {{ end }}
-        </tbody>
-    </table>
+    {{ template "contact_table" . }}
 </body>
 
 </html>
+{{end}}
+
+{{ block "contact_table" . }}
+<table>
+    <thead>
+        <tr>
+            <th>First</th>
+            <th>Last</th>
+            <th>Phone</th>
+            <th>Email</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{ range . }}
+        <tr>
+            <td>{{ .ID }}</td>
+            <td>{{ .Name }}</td>
+            <td>{{ .Phone }}</td>
+            <td>{{ .Email }}</td>
+            <td><a href="/contacts/{{ .ID }}/edit">Edit</a>
+                <a href="/contacts/{{ .ID }}">View</a>
+            </td>
+        </tr>
+        {{ end }}
+    </tbody>
+</table>
 {{end}}
