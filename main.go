@@ -103,7 +103,7 @@ func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
 		c := Contact{}
 		err := find_contact(id_string, &c)
 		if err != nil {
-			//@TODO: preguntar a Pablo cómo distinguir errores
+			//@TODO: preguntar a Pablo cómo distinguir código de estatus
 			http.Error(w, "Error finding contact: "+err.Error(), http.StatusBadRequest)
 			log.Error("contact_handler: error in app.Templates.Render()", "error", err)
 			return
