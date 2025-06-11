@@ -59,9 +59,9 @@ func main() {
 
 	mux.HandleFunc("GET /contacts", app.contact_handler)
 
-	// mux.HandleFunc("POST /contact", app.add_contact_handler)
+	mux.HandleFunc("GET /contacts/new", app.add_contact_get_handler)
 
-	mux.HandleFunc("GET /contacts/{id}", app.contact_handler)
+	mux.HandleFunc("POST /contacts/new", app.add_contact_post_handler)
 
 	// Start server
 	server := http.Server{
@@ -79,7 +79,7 @@ func main() {
 
 // @TODO: should it be an app method?
 func redirect_handler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/contact", http.StatusFound)
+	http.Redirect(w, r, "/contacts", http.StatusFound)
 }
 
 type Contact struct {
@@ -89,18 +89,23 @@ type Contact struct {
 	Phone string `json:"phone"`
 }
 
+type PageData struct {
+	Contacts []Contact
+	Query    string
+}
+
 // @TODO: divide into two handlers?
 // /contacts/{id}
 func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
 
-	id_string := r.PathValue("id")
+	id_query := r.URL.Query().Get("q")
 
-	if id_string == "" {
+	if id_query == "" {
 
 		//Show contact information response
 		w.Header().Set("Content-Type", "text/html")
 
-		err := app.Templates.Render(w, "index", contacts)
+		err := app.Templates.Render(w, "index", PageData{contacts, ""})
 		if err != nil {
 			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
 			log.Error("contact_handler: error in app.Templates.Render()", "error", err)
@@ -108,11 +113,10 @@ func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
 		}
 
 		return
-
 	}
 
 	//Parse id
-	id_int, err := strconv.Atoi(id_string)
+	id_int, err := strconv.Atoi(id_query)
 	if err != nil {
 		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
 		log.Error("contact_handler: error in strconv.Atoi(id)", "error", err)
@@ -133,8 +137,10 @@ func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	data := PageData{[]Contact{*contact}, id_query}
+
 	//Show contact information
-	err = app.Templates.Render(w, "index", []Contact{*contact})
+	err = app.Templates.Render(w, "index", data)
 	if err != nil {
 		http.Error(w, "Error finding contact", http.StatusBadRequest)
 		log.Error("contact_handler: error in app.Templates.Render()", "error", err)
@@ -142,7 +148,75 @@ func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// func (app *app) add_contact_handler(w http.ResponseWriter, r *http.Request) {}
+type Form_data struct {
+	Email      string
+	First_name string
+	Last_name  string
+	Phone      string
+	Errors     map[string]string
+}
+
+func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request) {
+
+	// Initialize the error map
+	errors := make(map[string]string)
+
+	// Get form values
+	email := r.FormValue("email")
+	first := r.FormValue("first_name")
+	last := r.FormValue("last_name")
+	phone := r.FormValue("phone")
+
+	//@TODO: verify fields are valid
+	if email == "" {
+		errors["email"] = "Email is required"
+	}
+	if first == "" {
+		errors["first"] = "First name is required"
+	}
+	if last == "" {
+		errors["last"] = "Last name is required"
+	}
+	if phone == "" {
+		errors["phone"] = "Phone is required"
+	}
+
+	// Add contact to contacts
+	contacts = append(contacts, Contact{
+		// depends on initial json file
+		len(contacts) + 3,
+		first + " " + last,
+		email,
+		phone,
+	})
+
+	form_data := Form_data{
+		Email:      email,
+		First_name: first,
+		Last_name:  last,
+		Phone:      phone,
+		Errors:     errors,
+	}
+
+	err := app.Templates.Render(w, "new", form_data)
+	if err != nil {
+		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
+		log.Error("add_contact_post_handler: error in app.Templates.Render()", "error", err)
+		return
+	}
+}
+
+func (app *app) add_contact_get_handler(w http.ResponseWriter, r *http.Request) {
+
+	var form_data Form_data
+
+	err := app.Templates.Render(w, "new", form_data)
+	if err != nil {
+		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
+		log.Error("add_contact_get_handler: error in app.Templates.Render()", "error", err)
+		return
+	}
+}
 
 // Auxiliar functions
 func logging(f http.Handler) http.Handler {

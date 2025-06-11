@@ -1,35 +1,27 @@
 {{ block "index" . }}
-<!doctype html>
-<html lang="">
+{{ template "layout-head" . }}
+{{ template "content" . }}
+{{ template "layout-foot" . }}
+{{ end }}
 
-<head>
-    <title>Contact App</title>
-    <link rel="stylesheet" href="https://the.missing.style/v0.2.0/missing.min.css">
-    <link rel="stylesheet" href="templates/site.css">
-    <script src="https://unpkg.com/htmx.org@2.0.4"
-        integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
-        crossorigin="anonymous"></script>
-</head>
 
-<body hx-boost="true">
-    <main>
-        <header>
-            <h1>
-                <all-caps>contacts.app</all-caps>
-                <sub-title>A Demo Contacts Application</sub-title>
-            </h1>
-        </header>
+{{ block "content" . }}
+<main>
+    <header>
+        <h1>
+            <all-caps>contacts.app</all-caps>
+            <sub-title>A Demo Contacts Application</sub-title>
+        </h1>
+    </header>
 
-        <div><a href="/contacts/new">New contact</a></div>
-        <hr>
-        {{ template "form" . }}
-        <hr>
-        {{ template "contact_table" . }}
-    </main>
-</body>
-
-</html>
+    <div><a href="/contacts/new">New contact</a></div>
+    <hr>
+    {{ template "form" . }}
+    <hr>
+    {{ template "contact_table" . }}
+</main>
 {{end}}
+
 
 <hr>
 {{ block "contact_table" . }}
@@ -43,14 +35,14 @@
         </tr>
     </thead>
     <tbody>
-        {{ range . }}
+        {{ range .Contacts }}
         <tr>
             <td>{{ .ID }}</td>
             <td>{{ .Name }}</td>
             <td>{{ .Phone }}</td>
             <td>{{ .Email }}</td>
             <td><a href="/contacts/{{ .ID }}/edit">Edit</a>
-                <a href="/contacts/{{ .ID }}">View</a>
+                <a href="/contacts?q={{ .ID }}">View</a>
             </td>
         </tr>
         {{ end }}
@@ -61,7 +53,7 @@
 {{ block "form" . }}
 <form action="/contacts" method="get" class="tool-bar">
     <label for="search">Search Term</label>
-    <input id="search" type="search" name="q" value="{{ request.args.get('q') or '' }}" />
+    <input id="search" type="search" name="q" value="{{ .Query }}" />
     <input type="submit" value="Search" />
 </form>
 {{ end }}

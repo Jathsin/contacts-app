@@ -1,0 +1,23 @@
+{{ block "layout-head" . }}
+<!doctype html>
+<html lang="">
+
+<head>
+    <title>Contact App</title>
+    <link rel="stylesheet" href="https://the.missing.style/v0.2.0/missing.min.css">
+    <link rel="stylesheet" href="templates/site.css">
+    <script src="https://unpkg.com/htmx.org@2.0.4"
+        integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+        crossorigin="anonymous"></script>
+</head>
+
+<body hx-boost="true">
+    {{ end }}
+
+
+
+    {{ block "layout-foot" . }}
+</body>
+
+</html>
+{{ end }}
