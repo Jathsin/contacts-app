@@ -59,19 +59,9 @@
 {{end}}
 
 {{ block "form" . }}
-<form>
-    <label for="name">Name</label>
-    <input name="name" type="text">
-    <label for="phone">Phone</label>
-    <input name="phone" type="text">
-    <label for="email">Email</label>
-    <input name="email" type="text">
-
-    <button>Save</button>
-</form>
-
-<p>
-    <a href=" /contacts">Back</a>
-</p>
+<form action="/contacts" method="get" class="tool-bar">
+    <label for="search">Search Term</label>
+    <input id="search" type="search" name="q" value="{{ request.args.get('q') or '' }}" />
+    <input type="submit" value="Search" />
 </form>
 {{ end }}

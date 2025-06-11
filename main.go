@@ -176,20 +176,3 @@ func load_contacts() error {
 
 	return nil
 }
-
-func find_contact(id string, contact *Contact) error {
-
-	//Parse id
-	id_int, err := strconv.Atoi(id)
-	if err != nil {
-		return fmt.Errorf("find_contact: error in strconv.Atoi(id): %w", err)
-	}
-	//Search for specific contact
-	for _, c := range contacts {
-		if c.ID == id_int {
-			*contact = c
-			return nil
-		}
-	}
-	return fmt.Errorf("find_contact: contact not found")
-}
