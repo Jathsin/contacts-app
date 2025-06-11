@@ -212,6 +212,7 @@ func (app *app) add_contact_get_handler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// /contacts/new
 func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request) {
 
 	success := true
@@ -258,7 +259,8 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 
 		//@TODO: show message to the user
 		log.Info("Contact added successfully")
-		redirect_handler(w, r)
+		http.Redirect(w, r, "/contacts/"+strconv.Itoa(len(contacts)+3), http.StatusFound)
+
 	}
 
 	// We cannot add contact
@@ -276,6 +278,7 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 
 }
 
+// /contacts/{id}/edit
 func (app *app) edit_contact_get_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
@@ -304,6 +307,7 @@ func (app *app) edit_contact_get_handler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// /contacts/{id}/edit
 func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
@@ -361,7 +365,7 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 
 		//@TODO: show message to the user
 		log.Info("Contact edited successfully")
-		redirect_handler(w, r)
+		http.Redirect(w, r, "/contacts/"+strconv.Itoa(id_int), http.StatusFound)
 	}
 
 	// We cannot edit contact
@@ -384,6 +388,7 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// /contacts/{id}/delete
 func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
