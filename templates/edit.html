@@ -1,0 +1,46 @@
+{{ block "edit" . }}
+{{ template "layout-head" . }}
+{{ template "edit-form" . }}
+{{ template "layout-foot" . }}
+{{ end }}
+
+{{ block "edit-form" . }}
+
+<form action="/contacts/{{ .Contact.ID }}/edit" method="post">
+    <fieldset>
+        <legend>Contact Values</legend>
+        <div class="table rows">
+            <p>
+                <label for="email">Email</label>
+                <input name="email" id="email" type="text" placeholder="Email" value="{{ .Contact.Email }}">
+                <span class="error">{{ index .Errors "email"}}</span>
+            </p>
+            <p>
+                <label for="first_name">First Name</label>
+                <input name="first_name" id="first_name" type="text" placeholder="First Name"
+                    value="{{ .Contact.First }}">
+                <span class="error">{{ index .Errors "first" }}</span>
+            </p>
+            <p>
+                <label for="last_name">Last Name</label>
+                <input name="last_name" id="last_name" type="text" placeholder="Last Name" value="{{ .Contact.Last }}">
+                <span class="error">{{ index .Errors "last" }}</span>
+            </p>
+            <p>
+                <label for="phone">Phone</label>
+                <input name="phone" id="phone" type="text" placeholder="Phone" value="{{ .Contact.Phone }}">
+                <span class="error">{{ index .Errors "phone" }}</span>
+            </p>
+        </div>
+        <button>Save</button>
+    </fieldset>
+</form>
+
+<form action="/contacts/{{ .Contact.ID }}/delete" method="post">
+    <button>Delete Contact</button>
+</form>
+
+<p>
+    <a href="/contacts/">Back</a>
+</p>
+{{ end }}

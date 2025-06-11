@@ -57,11 +57,19 @@ func main() {
 	//Define endpoints
 	mux.HandleFunc("GET /", redirect_handler)
 
-	mux.HandleFunc("GET /contacts", app.contact_handler)
+	mux.HandleFunc("GET /contacts", app.contact_query_handler)
+
+	mux.HandleFunc("GET /contacts/{id}", app.contact_id_handler)
 
 	mux.HandleFunc("GET /contacts/new", app.add_contact_get_handler)
 
 	mux.HandleFunc("POST /contacts/new", app.add_contact_post_handler)
+
+	mux.HandleFunc("GET /contacts/{id}/edit", app.edit_contact_get_handler)
+
+	mux.HandleFunc("POST /contacts/{id}/edit", app.edit_contact_post_handler)
+
+	mux.HandleFunc("POST /contacts/{id}/delete", app.delete_contact_handler)
 
 	// Start server
 	server := http.Server{
@@ -84,7 +92,8 @@ func redirect_handler(w http.ResponseWriter, r *http.Request) {
 
 type Contact struct {
 	ID    int    `json:"id"`
-	Name  string `json:"name"`
+	First string `json:"first"`
+	Last  string `json:"last"`
 	Email string `json:"email"`
 	Phone string `json:"phone"`
 }
@@ -94,13 +103,18 @@ type PageData struct {
 	Query    string
 }
 
+type Form_data struct {
+	Contact Contact
+	Errors  map[string]string
+}
+
 // @TODO: divide into two handlers?
-// /contacts/{id}
-func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
+// /contacts?q={id}
+func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
-	id_query := r.URL.Query().Get("q")
+	id_string := r.URL.Query().Get("q")
 
-	if id_query == "" {
+	if id_string == "" {
 
 		//Show contact information response
 		w.Header().Set("Content-Type", "text/html")
@@ -116,7 +130,7 @@ func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Parse id
-	id_int, err := strconv.Atoi(id_query)
+	id_int, err := strconv.Atoi(id_string)
 	if err != nil {
 		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
 		log.Error("contact_handler: error in strconv.Atoi(id)", "error", err)
@@ -124,20 +138,14 @@ func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//Search for specific contact
-	var contact *Contact = nil
-	for _, c := range contacts {
-		if c.ID == id_int {
-			contact = &c
-			break
-		}
-	}
-	if contact == nil {
+	contact, err := find_contact(id_int)
+	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
-		log.Error("contact_handler: contact not found")
+		log.Error("contact_handler: error in find_contact", "error", err)
 		return
 	}
 
-	data := PageData{[]Contact{*contact}, id_query}
+	data := PageData{[]Contact{*contact}, id_string}
 
 	//Show contact information
 	err = app.Templates.Render(w, "index", data)
@@ -148,15 +156,244 @@ func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-type Form_data struct {
-	Email      string
-	First_name string
-	Last_name  string
-	Phone      string
-	Errors     map[string]string
+// /contacts/{id}
+func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
+
+	id_string := r.PathValue("id")
+
+	if id_string == "" {
+
+		//Show contact information response
+		w.Header().Set("Content-Type", "text/html")
+
+		err := app.Templates.Render(w, "index", PageData{contacts, ""})
+		if err != nil {
+			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
+			log.Error("contact_handler: error in app.Templates.Render()", "error", err)
+			return
+		}
+
+		return
+	}
+
+	//Parse id
+	id_int, err := strconv.Atoi(id_string)
+	if err != nil {
+		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
+		log.Error("contact_handler: error in strconv.Atoi(id)", "error", err)
+		return
+	}
+
+	//Search for specific contact
+	contact, err := find_contact(id_int)
+	if err != nil {
+		http.Error(w, "Error, contact not found", http.StatusBadRequest)
+		log.Error("contact_handler: error in find_contact", "error", err)
+		return
+	}
+
+	//Show contact information
+	err = app.Templates.Render(w, "show", contact)
+	if err != nil {
+		http.Error(w, "Error showing contact", http.StatusBadRequest)
+		log.Error("contact_handler: error in app.Templates.Render()", "error", err)
+		return
+	}
+}
+
+func (app *app) add_contact_get_handler(w http.ResponseWriter, r *http.Request) {
+
+	var form_data Form_data
+	err := app.Templates.Render(w, "new", form_data)
+	if err != nil {
+		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
+		log.Error("add_contact_get_handler: error in app.Templates.Render()", "error", err)
+		return
+	}
 }
 
 func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request) {
+
+	success := true
+
+	// Initialize the error map
+	errors := make(map[string]string)
+
+	// Get form values
+	email := r.FormValue("email")
+	first := r.FormValue("first_name")
+	last := r.FormValue("last_name")
+	phone := r.FormValue("phone")
+
+	//@TODO: verify fields are valid
+	if email == "" {
+		errors["email"] = "Email is required"
+		success = false
+	}
+	if first == "" {
+		errors["first"] = "First name is required"
+		success = false
+	}
+	if last == "" {
+		errors["last"] = "Last name is required"
+		success = false
+	}
+	if phone == "" {
+		errors["phone"] = "Phone is required"
+		success = false
+	}
+
+	contact := Contact{
+		// depends on initial json file
+		len(contacts) + 3,
+		first,
+		last,
+		email,
+		phone,
+	}
+
+	if success {
+		// Add contact to contacts
+		contacts = append(contacts, contact)
+
+		//@TODO: show message to the user
+		log.Info("Contact added successfully")
+		redirect_handler(w, r)
+	}
+
+	// We cannot add contact
+	form_data := Form_data{
+		Contact: contact,
+		Errors:  errors,
+	}
+
+	err := app.Templates.Render(w, "new", form_data)
+	if err != nil {
+		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
+		log.Error("add_contact_post_handler: error in app.Templates.Render()", "error", err)
+		return
+	}
+
+}
+
+func (app *app) edit_contact_get_handler(w http.ResponseWriter, r *http.Request) {
+
+	id_string := r.PathValue("id")
+	//Parse id
+	id_int, err := strconv.Atoi(id_string)
+	if err != nil {
+		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
+		log.Error("edit_contact_post_handler: error in strconv.Atoi(id)", "error", err)
+		return
+	}
+	//Search for contact to edit
+	contact, err := find_contact(id_int)
+	if err != nil {
+		http.Error(w, "Error, contact not found", http.StatusBadRequest)
+		log.Error("contact_handler: error in find_contact", "error", err)
+		return
+	}
+
+	var form_data Form_data
+	form_data.Contact = *contact
+	err = app.Templates.Render(w, "edit", form_data)
+	if err != nil {
+		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
+		log.Error("edit_contact_get_handler: error in app.Templates.Render()", "error", err)
+		return
+	}
+}
+
+func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request) {
+
+	id_string := r.PathValue("id")
+	//Parse id
+	id_int, err := strconv.Atoi(id_string)
+	if err != nil {
+		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
+		log.Error("edit_contact_post_handler: error in strconv.Atoi(id)", "error", err)
+		return
+	}
+
+	success := true
+
+	// Initialize the error map
+	errors := make(map[string]string)
+
+	// Get form values
+	email := r.FormValue("email")
+	first := r.FormValue("first_name")
+	last := r.FormValue("last_name")
+	phone := r.FormValue("phone")
+
+	//@TODO: verify fields are valid
+	if email == "" {
+		errors["email"] = "Email is required"
+		success = false
+	}
+	if first == "" {
+		errors["first"] = "First name is required"
+		success = false
+	}
+	if last == "" {
+		errors["last"] = "Last name is required"
+		success = false
+	}
+	if phone == "" {
+		errors["phone"] = "Phone is required"
+		success = false
+	}
+
+	if success {
+		//Search for contact to edit
+		contact, err := find_contact(id_int)
+		if err != nil {
+			http.Error(w, "Error, contact not found", http.StatusBadRequest)
+			log.Error("contact_handler: error in find_contact", "error", err)
+			return
+		}
+
+		//replace with editted data
+		contact.Email = email
+		contact.First = first
+		contact.Last = last
+		contact.Phone = phone
+
+		//@TODO: show message to the user
+		log.Info("Contact edited successfully")
+		redirect_handler(w, r)
+	}
+
+	// We cannot edit contact
+	form_data := Form_data{
+		Contact: Contact{
+			ID:    id_int, //default
+			Email: email,
+			First: first,
+			Last:  last,
+			Phone: phone,
+		},
+		Errors: errors,
+	}
+
+	err = app.Templates.Render(w, "edit", form_data)
+	if err != nil {
+		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
+		log.Error("edit_contact_post_handler: error in app.Templates.Render()", "error", err)
+		return
+	}
+}
+
+func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
+
+	id_string := r.PathValue("id")
+	//Parse id
+	id_int, err := strconv.Atoi(id_string)
+	if err != nil {
+		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
+		log.Error("edit_contact_post_handler: error in strconv.Atoi(id)", "error", err)
+		return
+	}
 
 	// Initialize the error map
 	errors := make(map[string]string)
@@ -181,39 +418,32 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 		errors["phone"] = "Phone is required"
 	}
 
-	// Add contact to contacts
-	contacts = append(contacts, Contact{
-		// depends on initial json file
-		len(contacts) + 3,
-		first + " " + last,
-		email,
-		phone,
-	})
+	//delete contact
+	for i, c := range contacts {
+		if c.ID == id_int {
+			// Remove the contact at index i
+			contacts = append(contacts[:i], contacts[i+1:]...)
+			redirect_handler(w, r)
+		}
+	}
 
+	// We cannot delete contact
+	log.Info("delete_contact: contact not found")
 	form_data := Form_data{
-		Email:      email,
-		First_name: first,
-		Last_name:  last,
-		Phone:      phone,
-		Errors:     errors,
+		Contact: Contact{
+			ID:    id_int, //default
+			Email: email,
+			First: first,
+			Last:  last,
+			Phone: phone,
+		},
+		Errors: errors,
 	}
 
-	err := app.Templates.Render(w, "new", form_data)
+	err = app.Templates.Render(w, "edit", form_data)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
-		log.Error("add_contact_post_handler: error in app.Templates.Render()", "error", err)
-		return
-	}
-}
-
-func (app *app) add_contact_get_handler(w http.ResponseWriter, r *http.Request) {
-
-	var form_data Form_data
-
-	err := app.Templates.Render(w, "new", form_data)
-	if err != nil {
-		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
-		log.Error("add_contact_get_handler: error in app.Templates.Render()", "error", err)
+		log.Error("edit_contact_post_handler: error in app.Templates.Render()", "error", err)
 		return
 	}
 }
@@ -249,4 +479,13 @@ func load_contacts() error {
 	}
 
 	return nil
+}
+
+func find_contact(id int) (*Contact, error) {
+	for i := range contacts {
+		if contacts[i].ID == id {
+			return &contacts[i], nil
+		}
+	}
+	return nil, fmt.Errorf("find_contact: error, contact not found")
 }
