@@ -57,11 +57,11 @@ func main() {
 	//Define endpoints
 	mux.HandleFunc("GET /", redirect_handler)
 
-	mux.HandleFunc("GET /contact", app.contact_handler)
+	mux.HandleFunc("GET /contacts", app.contact_handler)
 
 	// mux.HandleFunc("POST /contact", app.add_contact_handler)
 
-	mux.HandleFunc("GET /contact/{id}", app.contact_handler)
+	mux.HandleFunc("GET /contacts/{id}", app.contact_handler)
 
 	// Start server
 	server := http.Server{
@@ -95,29 +95,48 @@ func (app *app) contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 
-	var contact_search []Contact
-
 	if id_string == "" {
-		contact_search = contacts
-	} else {
-		c := Contact{}
-		err := find_contact(id_string, &c)
+
+		//Show contact information response
+		w.Header().Set("Content-Type", "text/html")
+
+		err := app.Templates.Render(w, "index", contacts)
 		if err != nil {
-			//@TODO: preguntar a Pablo cómo distinguir código de estatus
-			http.Error(w, "Error finding contact: "+err.Error(), http.StatusBadRequest)
+			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
 			log.Error("contact_handler: error in app.Templates.Render()", "error", err)
 			return
 		}
 
-		contact_search = append(contact_search, c)
+		return
+
 	}
 
-	//Show contact information response
-	w.Header().Set("Content-Type", "text/html")
-
-	err := app.Templates.Render(w, "index", contact_search)
+	//Parse id
+	id_int, err := strconv.Atoi(id_string)
 	if err != nil {
-		http.Error(w, "Error providing contact information", http.StatusInternalServerError)
+		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
+		log.Error("contact_handler: error in strconv.Atoi(id)", "error", err)
+		return
+	}
+
+	//Search for specific contact
+	var contact *Contact = nil
+	for _, c := range contacts {
+		if c.ID == id_int {
+			contact = &c
+			break
+		}
+	}
+	if contact == nil {
+		http.Error(w, "Error, contact not found", http.StatusBadRequest)
+		log.Error("contact_handler: contact not found")
+		return
+	}
+
+	//Show contact information
+	err = app.Templates.Render(w, "index", []Contact{*contact})
+	if err != nil {
+		http.Error(w, "Error finding contact", http.StatusBadRequest)
 		log.Error("contact_handler: error in app.Templates.Render()", "error", err)
 		return
 	}

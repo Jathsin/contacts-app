@@ -1,24 +1,37 @@
 {{ block "index" . }}
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="">
 
 <head>
-    <title>Document</title>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact App</title>
+    <link rel="stylesheet" href="https://the.missing.style/v0.2.0/missing.min.css">
+    <link rel="stylesheet" href="templates/site.css">
     <script src="https://unpkg.com/htmx.org@2.0.4"
         integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
         crossorigin="anonymous"></script>
-
 </head>
 
-<body>
-    {{ template "contact_table" . }}
+<body hx-boost="true">
+    <main>
+        <header>
+            <h1>
+                <all-caps>contacts.app</all-caps>
+                <sub-title>A Demo Contacts Application</sub-title>
+            </h1>
+        </header>
+
+        <div><a href="/contacts/new">New contact</a></div>
+        <hr>
+        {{ template "form" . }}
+        <hr>
+        {{ template "contact_table" . }}
+    </main>
 </body>
 
 </html>
 {{end}}
 
+<hr>
 {{ block "contact_table" . }}
 <table>
     <thead>
@@ -44,3 +57,21 @@
     </tbody>
 </table>
 {{end}}
+
+{{ block "form" . }}
+<form>
+    <label for="name">Name</label>
+    <input name="name" type="text">
+    <label for="phone">Phone</label>
+    <input name="phone" type="text">
+    <label for="email">Email</label>
+    <input name="email" type="text">
+
+    <button>Save</button>
+</form>
+
+<p>
+    <a href=" /contacts">Back</a>
+</p>
+</form>
+{{ end }}
