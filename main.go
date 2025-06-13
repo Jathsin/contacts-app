@@ -69,7 +69,7 @@ func main() {
 
 	mux.HandleFunc("POST /contacts/{id}/edit", app.edit_contact_post_handler)
 
-	mux.HandleFunc("POST /contacts/{id}/delete", app.delete_contact_handler)
+	mux.HandleFunc("DELETE /contacts/{id}", app.delete_contact_handler)
 
 	// Start server
 	server := http.Server{
@@ -108,11 +108,14 @@ type Form_data struct {
 	Errors  map[string]string
 }
 
-// @TODO: divide into two handlers?
 // /contacts?q={id}
 func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.URL.Query().Get("q")
+
+	if id_string == "" {
+		id_string = r.PathValue("id")
+	}
 
 	if id_string == "" {
 
@@ -246,7 +249,7 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 
 	contact := Contact{
 		// depends on initial json file
-		len(contacts) + 3,
+		contacts[len(contacts)-1].ID + 1,
 		first,
 		last,
 		email,
@@ -258,9 +261,10 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 		contacts = append(contacts, contact)
 
 		//@TODO: show message to the user
-		log.Info("Contact added successfully")
-		http.Redirect(w, r, "/contacts/"+strconv.Itoa(len(contacts)+3), http.StatusFound)
-
+		log.Info("Contact successfully added")
+		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(contact.ID))
+		w.WriteHeader(http.StatusOK)
+		return
 	}
 
 	// We cannot add contact
@@ -365,7 +369,9 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 
 		//@TODO: show message to the user
 		log.Info("Contact edited successfully")
-		http.Redirect(w, r, "/contacts/"+strconv.Itoa(id_int), http.StatusFound)
+		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(id_int))
+		w.WriteHeader(http.StatusFound)
+		return
 	}
 
 	// We cannot edit contact
@@ -428,7 +434,12 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 		if c.ID == id_int {
 			// Remove the contact at index i
 			contacts = append(contacts[:i], contacts[i+1:]...)
-			redirect_handler(w, r)
+			log.Info("Contact deleted succesfully")
+
+			//@TODO: show message to the user
+			w.Header().Set("HX-Redirect", "/contacts")
+			w.WriteHeader(http.StatusOK)
+			return
 		}
 	}
 
