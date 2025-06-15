@@ -46,9 +46,25 @@
             </td>
         </tr>
         {{ end }}
+        <!-- {{ if eq (len .Contacts) 10 }}
+        <tr>
+            <td colspan="5" style="text-align: center">
+                <span hx-target="closest tr" hx-trigger="revealed" hx-swap="outerHTML" hx-select="tbody > tr"
+                    hx-get="/contacts?page={{ add .Page 1 }}">Loading More...</span>
+            </td>
+        </tr>
+        {{ end }} -->
+        <tr>
+            <td colspan="5" style="text-align: center">
+                <button hx-target="closest tr" hx-swap="outerHTML" hx-select="tbody > tr"
+                    hx-get="/contacts?page={{ add .Page 1 }}">
+                    Load More
+                </button>
+            </td>
+        </tr>
     </tbody>
 </table>
-<div>
+<!-- <div>
     <span style="float: right">
         {{ if gt .Page 1 }}
         <a href="/contacts?page={{ add .Page -1 }}">Previous</a>
@@ -57,7 +73,7 @@
         <a href="/contacts?page={{ add .Page 1 }}">Next</a>
         {{ end }}
     </span>
-</div>
+</div> -->
 
 {{end}}
 
