@@ -12,8 +12,10 @@
         <div class="table rows">
             <p>
                 <label for="email">Email</label>
-                <input name="email" id="email" type="text" placeholder="Email" value="{{ .Contact.Email }}">
-                <span class="error">{{ index .Errors "email"}}</span>
+                <input name="email" id="email" type="email" hx-get="/contacts/{{ .Contact.ID }}/email"
+                    hx-trigger="change, keyup delay:200ms changed" hx-target="next .error" placeholder="Email"
+                    value="{{ .Contact.Email }}">
+                {{ template "error_email" . }}
             </p>
             <p>
                 <label for="first_name">First Name</label>
@@ -37,10 +39,15 @@
 </form>
 
 
-<button hx-delete="/contacts/{{ .Contact.ID }}">Delete Contact</button>
-
+<button hx-delete="/contacts/{{ .Contact.ID }}" hx-target="body" hx-push-url="true"
+    hx-confirm="Do you wish to kill this person?">Delete Contact</button>
 
 <p>
     <a href="/contacts/">Back</a>
 </p>
 {{ end }}
+
+
+{{ block "error_email" . }}
+<span class="error">{{ index .Errors "email" }}</span>
+{{end}}

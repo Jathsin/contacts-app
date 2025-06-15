@@ -12,7 +12,7 @@
         <div class="table rows">
             <p>
                 <label for="email">Email</label>
-                <input name="email" id="email" type="text" placeholder="Email" value="{{ .Contact.Email }}">
+                <input name="email" id="email" type="email" placeholder="Email" value="{{ .Contact.Email }}">
                 <span class="error">{{ index .Errors "email"}}</span>
             </p>
             <p>
