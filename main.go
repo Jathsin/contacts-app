@@ -118,7 +118,6 @@ type Form_data struct {
 	Errors  map[string]string
 }
 
-// @TODO: divide into two handlers?
 // /contacts?q={id} and /contacts/{id}
 func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
@@ -126,15 +125,15 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
 	if id_string == "" {
 
-		//Show contact information response
-		w.Header().Set("Content-Type", "text/html")
-
+		//Show first 10 contacts
 		page_string := r.URL.Query().Get("page")
 		page, _ := strconv.Atoi(page_string)
+
 		if page <= 0 {
 			page = 1
 		}
-		err := app.Templates.Render(w, "index", PageData{get_contact_list(page - 1), "", page})
+
+		err := app.Templates.Render(w, target(r, id_string), PageData{get_contact_list(page - 1), "", page})
 		if err != nil {
 			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
 			log.Error("contact_query_handler: error in app.Templates.Render()", "error", err)
@@ -160,15 +159,32 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := PageData{[]Contact{*contact}, id_string, 0}
+	data := PageData{[]Contact{*contact}, id_string, -1}
 
 	//Show contact information
-	err = app.Templates.Render(w, "index", data)
+	err = app.Templates.Render(w, "contact_table", data)
 	if err != nil {
 		http.Error(w, "Error finding contact", http.StatusBadRequest)
 		log.Error("contact_query_handler: error in app.Templates.Render()", "error", err)
 		return
 	}
+}
+
+func target(r *http.Request, query string) string {
+	target := ""
+
+	params := r.URL.Query()
+	_, is_query := params["q"]
+
+	if !is_query {
+		// First visit: user just loaded the page, no search performed yet
+		target = "index"
+	} else if is_query && query == "" {
+		// User searched for an empty string
+		target = "contact_table"
+	}
+
+	return target
 }
 
 // /contacts/{id}

@@ -16,15 +16,16 @@
 
     <div><a href="/contacts/new">New contact</a></div>
     <hr>
-    {{ template "form" . }}
-    <hr>
-    {{ template "contact_table" . }}
+    <div id="contact_table">
+        {{ template "contact_table" . }}
+    </div>
 </main>
 {{end}}
 
 
-<hr>
 {{ block "contact_table" . }}
+{{ template "form" . }}
+<hr>
 <table>
     <thead>
         <tr>
@@ -54,7 +55,7 @@
             </td>
         </tr>
         {{ end }} -->
-        <tr>
+        <!-- <tr>
             <td colspan="5" style="text-align: center">
                 <button hx-target="closest tr" hx-swap="outerHTML" hx-select="tbody > tr"
                     hx-get="/contacts?page={{ add .Page 1 }}">
@@ -62,9 +63,9 @@
                 </button>
             </td>
         </tr>
-    </tbody>
+    </tbody> -->
 </table>
-<!-- <div>
+<div>
     <span style="float: right">
         {{ if gt .Page 1 }}
         <a href="/contacts?page={{ add .Page -1 }}">Previous</a>
@@ -73,14 +74,15 @@
         <a href="/contacts?page={{ add .Page 1 }}">Next</a>
         {{ end }}
     </span>
-</div> -->
+</div>
 
 {{end}}
 
 {{ block "form" . }}
 <form action="/contacts" method="get" class="tool-bar">
     <label for="search">Search Term</label>
-    <input id="search" type="search" name="q" value="{{ .Query }}" />
+    <input id="search" type="search" name="q" value="{{ .Query }}" hx-get="/contacts" hx-push-url="true"
+        hx-trigger="search, keyup delay:200ms changed" hx-target="#contact_table" hx-swap="innerHTML" />
     <input type="submit" value="Search" />
 </form>
 {{ end }}
