@@ -39,8 +39,8 @@
 </form>
 
 
-<button hx-delete="/contacts/{{ .Contact.ID }}" hx-target="body" hx-push-url="true"
-    hx-confirm="Do you wish to kill this person?">Delete Contact</button>
+<button id="delete-btn" hx-delete="/contacts/{{ .Contact.ID }}" hx-target="body" hx-push-url="true"
+    hx-confirm="Are you sure you want to kill this contact?">Delete Contact</button>
 
 <p>
     <a href="/contacts/">Back</a>

@@ -47,10 +47,10 @@ func newTemplate() *Templates {
 
 func main() {
 
-	//init logger
+	// Init logger
 	log = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	//load contacts
+	// Load contacts
 	err := load_contacts()
 	if err != nil {
 		log.Error("Error in load_contacts()", "error", err)
@@ -60,7 +60,10 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	//Define endpoints
+	// @TODO: fix serving spinning circles
+	// mux.Handle("GET /img/", http.StripPrefix("/img/", http.FileServer(http.Dir("img"))))
+
+	// Define endpoints
 	mux.HandleFunc("GET /", redirect_handler)
 
 	mux.HandleFunc("GET /contacts", app.contact_query_handler)
@@ -76,6 +79,10 @@ func main() {
 	mux.HandleFunc("POST /contacts/{id}/edit", app.edit_contact_post_handler)
 
 	mux.HandleFunc("DELETE /contacts/{id}", app.delete_contact_handler)
+
+	mux.HandleFunc("DELETE /contacts", app.delete_multiple_contacts_handler)
+
+	mux.HandleFunc("GET /contacts/count", app.count_contacts_handler)
 
 	// Validation endpoints
 	mux.HandleFunc("GET /contacts/{id}/email", app.validate_email_handler)
@@ -118,14 +125,16 @@ type Form_data struct {
 	Errors  map[string]string
 }
 
-// /contacts?q={id} and /contacts/{id}
+// /Contacts?q={id} and /contacts/{id}
 func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "text/html")
 
 	id_string := r.URL.Query().Get("q")
 
 	if id_string == "" {
 
-		//Show first 10 contacts
+		// Show first 10 contacts
 		page_string := r.URL.Query().Get("page")
 		page, _ := strconv.Atoi(page_string)
 
@@ -133,7 +142,7 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 			page = 1
 		}
 
-		err := app.Templates.Render(w, target(r, id_string), PageData{get_contact_list(page - 1), "", page})
+		err := app.Templates.Render(w, "index", PageData{get_contact_list(page), "", page})
 		if err != nil {
 			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
 			log.Error("contact_query_handler: error in app.Templates.Render()", "error", err)
@@ -143,7 +152,7 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Parse id
+	// Parse id
 	id_int, err := strconv.Atoi(id_string)
 	if err != nil {
 		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
@@ -151,7 +160,7 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Search for specific contact
+	// Search for specific contact
 	contact, err := find_contact(id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
@@ -159,32 +168,15 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := PageData{[]Contact{*contact}, id_string, -1}
+	data := PageData{[]Contact{*contact}, id_string, 0}
 
-	//Show contact information
-	err = app.Templates.Render(w, "contact_table", data)
+	// Show contact information
+	err = app.Templates.Render(w, "index", data)
 	if err != nil {
 		http.Error(w, "Error finding contact", http.StatusBadRequest)
 		log.Error("contact_query_handler: error in app.Templates.Render()", "error", err)
 		return
 	}
-}
-
-func target(r *http.Request, query string) string {
-	target := ""
-
-	params := r.URL.Query()
-	_, is_query := params["q"]
-
-	if !is_query {
-		// First visit: user just loaded the page, no search performed yet
-		target = "index"
-	} else if is_query && query == "" {
-		// User searched for an empty string
-		target = "contact_table"
-	}
-
-	return target
 }
 
 // /contacts/{id}
@@ -194,7 +186,7 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 
 	if id_string == "" {
 
-		//Show contact information response
+		// Show contact information response
 		w.Header().Set("Content-Type", "text/html")
 
 		page_string := r.URL.Query().Get("page")
@@ -202,7 +194,14 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 		if page <= 0 {
 			page = 1
 		}
-		err := app.Templates.Render(w, "index", PageData{get_contact_list(page - 1), "", page})
+
+		var err error
+		if r.Header.Get("HX-Trigger") == "search" {
+			err = app.Templates.Render(w, "rows", PageData{get_contact_list(page), "", page})
+
+		} else {
+			err = app.Templates.Render(w, "index", PageData{get_contact_list(page), "", page})
+		}
 		if err != nil {
 			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
 			log.Error("contact_id_handler: error in app.Templates.Render()", "error", err)
@@ -212,7 +211,7 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Parse id
+	// Parse id
 	id_int, err := strconv.Atoi(id_string)
 	if err != nil {
 		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
@@ -220,7 +219,7 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Search for specific contact
+	// Search for specific contact
 	contact, err := find_contact(id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
@@ -228,7 +227,7 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Show contact information
+	// Show contact information
 	err = app.Templates.Render(w, "show", contact)
 	if err != nil {
 		http.Error(w, "Error showing contact", http.StatusBadRequest)
@@ -281,7 +280,7 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 	}
 
 	contact := Contact{
-		// depends on initial json file
+		// Depends on initial json file
 		contacts[len(contacts)-1].ID + 1,
 		first,
 		last,
@@ -293,7 +292,7 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 		// Add contact to contacts
 		contacts = append(contacts, contact)
 
-		//@TODO: show message to the user
+		// @TODO: show message to the user
 		log.Info("Contact successfully added")
 		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(contact.ID))
 		w.WriteHeader(http.StatusOK)
@@ -319,14 +318,14 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 func (app *app) edit_contact_get_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
-	//Parse id
+	// Parse id
 	id_int, err := strconv.Atoi(id_string)
 	if err != nil {
 		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
 		log.Error("edit_contact_post_handler: error in strconv.Atoi(id)", "error", err)
 		return
 	}
-	//Search for contact to edit
+	// Search for contact to edit
 	contact, err := find_contact(id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
@@ -348,7 +347,7 @@ func (app *app) edit_contact_get_handler(w http.ResponseWriter, r *http.Request)
 func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
-	//Parse id
+	// Parse id
 	id_int, err := strconv.Atoi(id_string)
 	if err != nil {
 		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
@@ -383,7 +382,7 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 	}
 
 	if errors["email"] == "" && success {
-		//Search for contact to edit
+		// Search for contact to edit
 		contact, err := find_contact(id_int)
 		if err != nil {
 			http.Error(w, "Error, contact not found", http.StatusBadRequest)
@@ -391,13 +390,13 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 			return
 		}
 
-		//replace with editted data
+		// Replace with editted data
 		contact.Email = email
 		contact.First = first
 		contact.Last = last
 		contact.Phone = phone
 
-		//@TODO: show message to the user
+		// @TODO: show message to the user
 		log.Info("Contact edited successfully")
 		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(id_int))
 		w.WriteHeader(http.StatusFound)
@@ -424,11 +423,11 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// /contacts/{id}/delete
+// /contacts/{id}/edit
 func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
-	//Parse id
+	// Parse id
 	id_int, err := strconv.Atoi(id_string)
 	if err != nil {
 		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
@@ -459,7 +458,7 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 		errors["phone"] = "Phone is required"
 	}
 
-	//delete contact
+	// Delete contact
 	for i, c := range contacts {
 		if c.ID == id_int {
 			// Remove the contact at index i
@@ -467,7 +466,10 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 			//@TODO: show message to the user
 			log.Info("Contact deleted succesfully")
-			http.Redirect(w, r, "/contacts", http.StatusSeeOther)
+			if r.Header.Get("HX-Trigger") == "delete-btn" {
+				http.Redirect(w, r, "/contacts", http.StatusSeeOther)
+			}
+			// We do not want to render anything
 			return
 		}
 	}
@@ -493,26 +495,68 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Validation handlers
+func (app *app) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
-func validate_email(id int, email string) string {
-	if email == "" {
-		return "Email is empty"
+	count := len(contacts)
+	_, err := w.Write([]byte(strconv.Itoa(count) + " total Contacts"))
+	if err != nil {
+		http.Error(w, "Error, could not write response", http.StatusInternalServerError)
+		log.Error("count_contacts_handler: error in  w.Write()", "error", err)
+		return
 	}
-	for _, c := range contacts {
-		if c.ID != id && c.Email == email {
-			return "Email must be unique"
-		}
-	}
-	return ""
 }
 
-// @TODO: fix
+// DELETE /contacts
+func (app *app) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
+
+	// Parse ids
+	err := r.ParseForm()
+	if err != nil {
+		http.Error(w, "Error processing submitted data", http.StatusBadRequest)
+		log.Error("delete_multiple_contacts_handler: error in r.ParseForm()", "error", err)
+		return
+	}
+	ids := r.Form["selected_contact_ids"]
+
+	fmt.Print("hellou")
+	fmt.Print(ids)
+
+	var ids_int []int
+
+	// Parse array
+	for i, id_string := range ids {
+		id_int, err := strconv.Atoi(id_string)
+		if err != nil {
+			http.Error(w, "Error, id nº "+strconv.Itoa(i)+"must be an integer", http.StatusBadRequest)
+			log.Error("delete_contact_handler: error in strconv.Atoi(id)", "error", err)
+			return
+		}
+		ids_int = append(ids_int, id_int)
+	}
+
+	// Delete selected contacts
+	for _, id_int := range ids_int {
+		for i, c := range contacts {
+			if c.ID == id_int {
+				// Remove the contact at index i
+				contacts = append(contacts[:i], contacts[i+1:]...)
+			}
+		}
+	}
+
+	err = app.Templates.Render(w, "index", PageData{get_contact_list(1), "", 1})
+	if err != nil {
+		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
+		log.Error("delete_multiple_contacts_handler: error in app.Templates.Render()", "error", err)
+		return
+	}
+}
+
 // /contacts/{id}/{email}
 func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
-	//Parse id
+	// Parse id
 	id_int, err := strconv.Atoi(id_string)
 	if err != nil {
 		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
@@ -526,7 +570,7 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 		log.Error("validate_email_handler: error in find_contact", "error", err)
 		return
 	}
-	//check email is unique
+	// Check email is unique
 	email := r.URL.Query().Get("email")
 	error_msg := validate_email(id_int, email)
 
@@ -546,7 +590,7 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Auxiliar functions
+// AUXILIAR FUNCTIONS
 func logging(f http.Handler) http.Handler {
 	return (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := uuid.New().String()
@@ -589,11 +633,25 @@ func find_contact(id int) (*Contact, error) {
 }
 
 func get_contact_list(page int) []Contact {
-	limit := page*10 + 10
+	p := page - 1
+	limit := p*10 + 10
 	var contact_set []Contact
-	for i := page * 10; i < limit && i < len(contacts); i++ {
+	for i := p * 10; i < limit && i < len(contacts); i++ {
 		contact_set = append(contact_set, contacts[i])
 	}
 
 	return contact_set
+}
+
+// Validation logic
+func validate_email(id int, email string) string {
+	if email == "" {
+		return "Email is empty"
+	}
+	for _, c := range contacts {
+		if c.ID != id && c.Email == email {
+			return "Email must be unique"
+		}
+	}
+	return ""
 }
