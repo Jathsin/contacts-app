@@ -61,7 +61,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	// @TODO: fix serving spinning circles
-	// mux.Handle("GET /img/", http.StripPrefix("/img/", http.FileServer(http.Dir("img"))))
+	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	// Define endpoints
 	mux.HandleFunc("GET /", redirect_handler)
@@ -84,8 +84,9 @@ func main() {
 
 	mux.HandleFunc("GET /contacts/count", app.count_contacts_handler)
 
-	// Validation endpoints
 	mux.HandleFunc("GET /contacts/{id}/email", app.validate_email_handler)
+
+	mux.HandleFunc("POST /contacts/archive", app.archive_contact_handler)
 
 	// Start server
 	server := http.Server{
@@ -589,6 +590,12 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+
+func (app *app) archive_contact_handler() {
+	 archiver := GetArchiverUser()
+}
+
 
 // AUXILIAR FUNCTIONS
 func logging(f http.Handler) http.Handler {

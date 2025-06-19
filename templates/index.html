@@ -16,9 +16,10 @@
     <p>
         <a href="/contacts/new">Add Contact</a>
         <span hx-get="/contacts/count" hx-trigger="revealed">
-            <img id="spinner" class="htmx-indicator" src="/img/spinning-circles.svg" />
+            <img id="spinner" class="htmx-indicator" src="/static/img/spinning-circles.svg" />
         </span>
     </p>
+    {{ template "archive_ui" . }}
     <hr>
     {{ template "form" . }}
     {{ template "contact_table" . }}
@@ -31,7 +32,6 @@
     <label for="search">Search Term</label>
     <input id="search" type="search" name="q" value="{{ .Query }}" hx-get="/contacts" hx-push-url="true"
         hx-trigger="search, keyup delay:200ms changed" hx-target="tbody" hx-select="tbody tr" hx-indicator="#spinner" />
-    <img id="spinner" class="htmx-indicator" src="/img/spinning-circles.svg" alt="Request In Flight..." />
     <input type="submit" value="Search" />
 
 </form>
