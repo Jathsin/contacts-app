@@ -591,11 +591,9 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-
 func (app *app) archive_contact_handler() {
-	 archiver := GetArchiverUser()
+	archiver := GetArchiverUser()
 }
-
 
 // AUXILIAR FUNCTIONS
 func logging(f http.Handler) http.Handler {
@@ -619,12 +617,12 @@ func load_contacts() error {
 	var err error
 	contacts_data, err = os.ReadFile("contacts.json")
 	if err != nil {
-		return fmt.Errorf("contact_handler: error in osReadFile: %w", err)
+		return fmt.Errorf("load_contacts: error in osReadFile: %w", err)
 	}
 
 	err = json.Unmarshal(contacts_data, &contacts)
 	if err != nil {
-		return fmt.Errorf("contact_handler: error in json.Unmarhsall: %w", err)
+		return fmt.Errorf("load_contacts: error in json.Unmarhsall: %w", err)
 	}
 
 	return nil
