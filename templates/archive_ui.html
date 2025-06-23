@@ -1,5 +1,9 @@
 {{ block "archive_ui" . }}
 <div id="archive-ui" hx-target="this" hx-swap="outerHTML">
+    {{ if eq .Archiver.Status "Waiting"}}
     <button hx-post="/contacts/archive">Download Contact Archive</button>
+    {{ else if eq .Archiver.Status "Running"}}
+    {{ .Archiver.Status}}...
+    {{ end }}
 </div>
 {{ end }}

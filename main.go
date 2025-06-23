@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
+	"hypermedia/archiver"
 	"io"
 	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,8 +21,9 @@ var log *slog.Logger
 
 var contacts []Contact
 var contacts_data []byte
+var myArchiver archiver.Archiver
 
-type app struct {
+type App struct {
 	Templates *Templates
 }
 
@@ -56,11 +59,15 @@ func main() {
 		log.Error("Error in load_contacts()", "error", err)
 	}
 
-	app := app{newTemplate()}
+	// Set default archvier status for user
+	user_id := uuid.NewString()
+	myArchiver = *archiver.GetArchiverForUser(user_id)
+
+	app := App{newTemplate()}
 
 	mux := http.NewServeMux()
 
-	// @TODO: fix serving spinning circles
+	// TODO: fix serving spinning circles
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	// Define endpoints
@@ -102,7 +109,6 @@ func main() {
 	}
 }
 
-// @TODO: should it be an app method?
 func redirect_handler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/contacts", http.StatusFound)
 }
@@ -119,15 +125,16 @@ type PageData struct {
 	Contacts []Contact
 	Query    string
 	Page     int
+	Archiver archiver.Archiver
 }
 
-type Form_data struct {
+type form_data struct {
 	Contact Contact
 	Errors  map[string]string
 }
 
-// /Contacts?q={id} and /contacts/{id}
-func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
+// /contacts?q={id} and /contacts/{id}
+func (app *App) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 
@@ -143,7 +150,8 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 			page = 1
 		}
 
-		err := app.Templates.Render(w, "index", PageData{get_contact_list(page), "", page})
+		//	TODO: fix writeHeader superfluous call
+		err := app.Templates.Render(w, "index", PageData{get_contact_list(page), "", page, myArchiver})
 		if err != nil {
 			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
 			log.Error("contact_query_handler: error in app.Templates.Render()", "error", err)
@@ -161,15 +169,15 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Search for specific contact
-	contact, err := find_contact(id_int)
+	// Search for specific c
+	c, err := find_contact(id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
 		log.Error("contact_query_handler: error in find_contact", "error", err)
 		return
 	}
 
-	data := PageData{[]Contact{*contact}, id_string, 0}
+	data := PageData{[]Contact{*c}, id_string, 0, myArchiver}
 
 	// Show contact information
 	err = app.Templates.Render(w, "index", data)
@@ -181,14 +189,13 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /contacts/{id}
-func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) contact_id_handler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "text/html")
 
 	id_string := r.PathValue("id")
 
 	if id_string == "" {
-
-		// Show contact information response
-		w.Header().Set("Content-Type", "text/html")
 
 		page_string := r.URL.Query().Get("page")
 		page, _ := strconv.Atoi(page_string)
@@ -198,10 +205,10 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 
 		var err error
 		if r.Header.Get("HX-Trigger") == "search" {
-			err = app.Templates.Render(w, "rows", PageData{get_contact_list(page), "", page})
+			err = app.Templates.Render(w, "rows", PageData{get_contact_list(page), "", page, myArchiver})
 
 		} else {
-			err = app.Templates.Render(w, "index", PageData{get_contact_list(page), "", page})
+			err = app.Templates.Render(w, "index", PageData{get_contact_list(page), "", page, myArchiver})
 		}
 		if err != nil {
 			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
@@ -220,8 +227,8 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Search for specific contact
-	contact, err := find_contact(id_int)
+	// Search for specific c
+	c, err := find_contact(id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
 		log.Error("contact_id_handler: error in find_contact", "error", err)
@@ -229,7 +236,7 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Show contact information
-	err = app.Templates.Render(w, "show", contact)
+	err = app.Templates.Render(w, "show", c)
 	if err != nil {
 		http.Error(w, "Error showing contact", http.StatusBadRequest)
 		log.Error("contact_id_handler: error in app.Templates.Render()", "error", err)
@@ -237,9 +244,9 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *app) add_contact_get_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) add_contact_get_handler(w http.ResponseWriter, r *http.Request) {
 
-	var form_data Form_data
+	var form_data form_data
 	err := app.Templates.Render(w, "new", form_data)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
@@ -249,7 +256,7 @@ func (app *app) add_contact_get_handler(w http.ResponseWriter, r *http.Request) 
 }
 
 // /contacts/new
-func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) add_contact_post_handler(w http.ResponseWriter, r *http.Request) {
 
 	success := true
 
@@ -262,7 +269,7 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 	last := r.FormValue("last_name")
 	phone := r.FormValue("phone")
 
-	//@TODO: verify fields are valid
+	// TODO: verify fields are valid
 	if email == "" {
 		errors["email"] = "Email is required"
 		success = false
@@ -280,7 +287,7 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 		success = false
 	}
 
-	contact := Contact{
+	c := Contact{
 		// Depends on initial json file
 		contacts[len(contacts)-1].ID + 1,
 		first,
@@ -291,18 +298,18 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 
 	if success {
 		// Add contact to contacts
-		contacts = append(contacts, contact)
+		contacts = append(contacts, c)
 
-		// @TODO: show message to the user
+		// TODO: show message to the user
 		log.Info("Contact successfully added")
-		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(contact.ID))
+		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(c.ID))
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 
 	// We cannot add contact
-	form_data := Form_data{
-		Contact: contact,
+	form_data := form_data{
+		Contact: c,
 		Errors:  errors,
 	}
 
@@ -316,7 +323,7 @@ func (app *app) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 }
 
 // /contacts/{id}/edit
-func (app *app) edit_contact_get_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) edit_contact_get_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -326,16 +333,16 @@ func (app *app) edit_contact_get_handler(w http.ResponseWriter, r *http.Request)
 		log.Error("edit_contact_post_handler: error in strconv.Atoi(id)", "error", err)
 		return
 	}
-	// Search for contact to edit
-	contact, err := find_contact(id_int)
+	// Search for c to edit
+	c, err := find_contact(id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
 		log.Error("edit_contact_get_handler: error in find_contact", "error", err)
 		return
 	}
 
-	var form_data Form_data
-	form_data.Contact = *contact
+	var form_data form_data
+	form_data.Contact = *c
 	err = app.Templates.Render(w, "edit", form_data)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
@@ -345,7 +352,7 @@ func (app *app) edit_contact_get_handler(w http.ResponseWriter, r *http.Request)
 }
 
 // /contacts/{id}/edit
-func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) edit_contact_post_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -367,7 +374,7 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 
 	success := true
 
-	//@TODO: verify fields are valid
+	// TODO: verify fields are valid
 	errors["email"] = validate_email(id_int, email)
 	if first == "" {
 		errors["first"] = "First name is required"
@@ -383,8 +390,8 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 	}
 
 	if errors["email"] == "" && success {
-		// Search for contact to edit
-		contact, err := find_contact(id_int)
+		// Search for c to edit
+		c, err := find_contact(id_int)
 		if err != nil {
 			http.Error(w, "Error, contact not found", http.StatusBadRequest)
 			log.Error("edit_contact_post_handler: error in find_contact", "error", err)
@@ -392,12 +399,12 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 		}
 
 		// Replace with editted data
-		contact.Email = email
-		contact.First = first
-		contact.Last = last
-		contact.Phone = phone
+		c.Email = email
+		c.First = first
+		c.Last = last
+		c.Phone = phone
 
-		// @TODO: show message to the user
+		// TODO: show message to the user
 		log.Info("Contact edited successfully")
 		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(id_int))
 		w.WriteHeader(http.StatusFound)
@@ -405,7 +412,7 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 	}
 
 	// We cannot edit contact
-	form_data := Form_data{
+	form_data := form_data{
 		Contact: Contact{
 			ID:    id_int, //default
 			Email: email,
@@ -425,7 +432,7 @@ func (app *app) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 }
 
 // /contacts/{id}/edit
-func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -445,7 +452,7 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 	last := r.FormValue("last_name")
 	phone := r.FormValue("phone")
 
-	//@TODO: verify fields are valid
+	// TODO: verify fields are valid
 	if email == "" {
 		errors["email"] = "Email is required"
 	}
@@ -465,7 +472,7 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 			// Remove the contact at index i
 			contacts = append(contacts[:i], contacts[i+1:]...)
 
-			//@TODO: show message to the user
+			// TODO: show message to the user
 			log.Info("Contact deleted succesfully")
 			if r.Header.Get("HX-Trigger") == "delete-btn" {
 				http.Redirect(w, r, "/contacts", http.StatusSeeOther)
@@ -477,7 +484,7 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	// We cannot delete contact
 	log.Info("delete_contact: contact not found")
-	form_data := Form_data{
+	form_data := form_data{
 		Contact: Contact{
 			ID:    id_int, //default
 			Email: email,
@@ -496,7 +503,7 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *app) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 	count := len(contacts)
 	_, err := w.Write([]byte(strconv.Itoa(count) + " total Contacts"))
@@ -508,7 +515,7 @@ func (app *app) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // DELETE /contacts
-func (app *app) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse ids
 	err := r.ParseForm()
@@ -545,7 +552,7 @@ func (app *app) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.
 		}
 	}
 
-	err = app.Templates.Render(w, "index", PageData{get_contact_list(1), "", 1})
+	err = app.Templates.Render(w, "index", PageData{get_contact_list(1), "", 1, myArchiver})
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
 		log.Error("delete_multiple_contacts_handler: error in app.Templates.Render()", "error", err)
@@ -554,7 +561,7 @@ func (app *app) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.
 }
 
 // /contacts/{id}/{email}
-func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -565,7 +572,7 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contact, err := find_contact(id_int)
+	c, err := find_contact(id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
 		log.Error("validate_email_handler: error in find_contact", "error", err)
@@ -578,8 +585,8 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	Errors := make(map[string]string)
 	Errors["email"] = error_msg
 
-	form_data := Form_data{
-		*contact,
+	form_data := form_data{
+		*c,
 		Errors,
 	}
 
@@ -591,8 +598,44 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *app) archive_contact_handler() {
-	archiver := GetArchiverUser()
+func (app *App) archive_contact_handler(w http.ResponseWriter, r *http.Request) {
+
+	// Concurrent processing
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	go func() {
+		defer wg.Done()
+		myArchiver.Run()
+	}()
+
+	time.Sleep(1000 * time.Millisecond)
+	err := app.Templates.Render(w, "archive_ui", PageData{[]Contact{}, "", 0, myArchiver})
+	if err != nil {
+		http.Error(w, "Error processing archive", http.StatusInternalServerError)
+		log.Error("archive_contact_handler: error in app.Templates.Render()", "error", err)
+		return
+
+		// Repeatedly execute while myArchiver.Run() is working
+		// for {
+		// 	select {
+		// 	case <-done:
+		// 		// myArchiver.Run() finished
+		// 		return
+		// 	default:
+		// 		err := app.Templates.Render(w, "archive_ui", PageData{[]Contact{}, "", 0, myArchiver})
+		// 		if err != nil {
+		// 			http.Error(w, "Error processing archive", http.StatusInternalServerError)
+		// 			log.Error("archive_contact_handler: error in app.Templates.Render()", "error", err)
+		// 			return
+		// 		}
+
+		// 		// Avoid busy looping
+		// 		time.Sleep(500 * time.Millisecond)
+
+		// 	}
+		// }
+	}
 }
 
 // AUXILIAR FUNCTIONS
