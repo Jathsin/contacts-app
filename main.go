@@ -42,6 +42,9 @@ func newTemplate() *Templates {
 		"add": func(a, b int) int {
 			return a + b
 		},
+		"mult": func(a float64, b float64) float64 {
+			return a * b
+		},
 	})
 	return &Templates{
 		templates: template.Must(tmpl.ParseGlob("templates/*.html")),
@@ -93,7 +96,9 @@ func main() {
 
 	mux.HandleFunc("GET /contacts/{id}/email", app.validate_email_handler)
 
-	mux.HandleFunc("POST /contacts/archive", app.archive_contact_handler)
+	mux.HandleFunc("POST /contacts/archive", app.archive_contact_post_handler)
+
+	mux.HandleFunc("GET /contacts/archive", app.archive_contact_get_handler)
 
 	// Start server
 	server := http.Server{
@@ -598,7 +603,7 @@ func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *App) archive_contact_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) archive_contact_post_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Concurrent processing
 	var wg sync.WaitGroup
@@ -610,35 +615,26 @@ func (app *App) archive_contact_handler(w http.ResponseWriter, r *http.Request) 
 	}()
 
 	time.Sleep(1000 * time.Millisecond)
-	err := app.Templates.Render(w, "archive_ui", PageData{[]Contact{}, "", 0, myArchiver})
+
+	err := app.Templates.Render(w, "archive_ui", myArchiver)
 	if err != nil {
 		http.Error(w, "Error processing archive", http.StatusInternalServerError)
 		log.Error("archive_contact_handler: error in app.Templates.Render()", "error", err)
 		return
-
-		// Repeatedly execute while myArchiver.Run() is working
-		// for {
-		// 	select {
-		// 	case <-done:
-		// 		// myArchiver.Run() finished
-		// 		return
-		// 	default:
-		// 		err := app.Templates.Render(w, "archive_ui", PageData{[]Contact{}, "", 0, myArchiver})
-		// 		if err != nil {
-		// 			http.Error(w, "Error processing archive", http.StatusInternalServerError)
-		// 			log.Error("archive_contact_handler: error in app.Templates.Render()", "error", err)
-		// 			return
-		// 		}
-
-		// 		// Avoid busy looping
-		// 		time.Sleep(500 * time.Millisecond)
-
-		// 	}
-		// }
 	}
 }
 
-// AUXILIAR FUNCTIONS
+func (app *App) archive_contact_get_handler(w http.ResponseWriter, r *http.Request) {
+
+	err := app.Templates.Render(w, "archive_ui", myArchiver)
+	if err != nil {
+		http.Error(w, "Error processing archive", http.StatusInternalServerError)
+		log.Error("archive_contact_handler: error in app.Templates.Render()", "error", err)
+		return
+	}
+}
+
+// AUXILIARY FUNCTIONS
 func logging(f http.Handler) http.Handler {
 	return (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := uuid.New().String()
@@ -650,7 +646,7 @@ func logging(f http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), "log", log)
 		r = r.WithContext(ctx)
-		//calls actual handler
+		// Calls actual handler
 		f.ServeHTTP(w, r)
 	}))
 }
