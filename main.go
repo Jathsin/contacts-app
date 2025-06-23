@@ -100,6 +100,8 @@ func main() {
 
 	mux.HandleFunc("GET /contacts/archive", app.archive_get_handler)
 
+	mux.HandleFunc("DELETE /contacts/archive", app.archive_delete_handler)
+
 	mux.HandleFunc("GET /contacts/archive/file", app.archive_file_handler)
 
 	// Start server
@@ -176,7 +178,7 @@ func (app *App) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Search for specific c
+	// Search for specific contact
 	c, err := find_contact(id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
@@ -234,7 +236,7 @@ func (app *App) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Search for specific c
+	// Search for specific contact
 	c, err := find_contact(id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
@@ -332,15 +334,15 @@ func (app *App) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 // /contacts/{id}/edit
 func (app *App) edit_contact_get_handler(w http.ResponseWriter, r *http.Request) {
 
-	id_string := r.PathValue("id")
 	// Parse id
+	id_string := r.PathValue("id")
 	id_int, err := strconv.Atoi(id_string)
 	if err != nil {
 		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
 		log.Error("edit_contact_post_handler: error in strconv.Atoi(id)", "error", err)
 		return
 	}
-	// Search for c to edit
+	// Search for contact to edit
 	c, err := find_contact(id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
@@ -605,6 +607,7 @@ func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// /contacts/archive
 func (app *App) archive_post_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Concurrent processing
@@ -621,27 +624,44 @@ func (app *App) archive_post_handler(w http.ResponseWriter, r *http.Request) {
 	err := app.Templates.Render(w, "archive_ui", myArchiver)
 	if err != nil {
 		http.Error(w, "Error processing archive", http.StatusInternalServerError)
-		log.Error("archive_contact_handler: error in app.Templates.Render()", "error", err)
+		log.Error("archive_post_handler: error in app.Templates.Render()", "error", err)
 		return
 	}
 }
 
+// /contacts/archive
 func (app *App) archive_get_handler(w http.ResponseWriter, r *http.Request) {
 
 	err := app.Templates.Render(w, "archive_ui", myArchiver)
 	if err != nil {
 		http.Error(w, "Error processing archive", http.StatusInternalServerError)
-		log.Error("archive_contact_handler: error in app.Templates.Render()", "error", err)
+		log.Error("archive_get_handler: error in app.Templates.Render()", "error", err)
 		return
 	}
 }
 
+// /contacts/archive
+func (app *App) archive_delete_handler(w http.ResponseWriter, r *http.Request) {
+
+	myArchiver.Reset()
+	err := app.Templates.Render(w, "archive_ui", myArchiver)
+	if err != nil {
+		http.Error(w, "Error processing archive", http.StatusInternalServerError)
+		log.Error("archive_delete_handler: error in app.Templates.Render()", "error", err)
+		return
+	}
+
+}
+
+// /contacts/archive/file
 func (app *App) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", `attachment; filename="contacts.json"`)
 
 	// Serve the file
 	http.ServeFile(w, r, "contacts.json")
 }
+
+// -----------------------------------------------------------------------------
 
 // AUXILIARY FUNCTIONS
 func logging(f http.Handler) http.Handler {
@@ -696,7 +716,6 @@ func get_contact_list(page int) []Contact {
 	return contact_set
 }
 
-// Validation logic
 func validate_email(id int, email string) string {
 	if email == "" {
 		return "Email is empty"
