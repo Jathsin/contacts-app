@@ -96,9 +96,11 @@ func main() {
 
 	mux.HandleFunc("GET /contacts/{id}/email", app.validate_email_handler)
 
-	mux.HandleFunc("POST /contacts/archive", app.archive_contact_post_handler)
+	mux.HandleFunc("POST /contacts/archive", app.archive_post_handler)
 
-	mux.HandleFunc("GET /contacts/archive", app.archive_contact_get_handler)
+	mux.HandleFunc("GET /contacts/archive", app.archive_get_handler)
+
+	mux.HandleFunc("GET /contacts/archive/file", app.archive_file_handler)
 
 	// Start server
 	server := http.Server{
@@ -603,7 +605,7 @@ func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *App) archive_contact_post_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) archive_post_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Concurrent processing
 	var wg sync.WaitGroup
@@ -614,7 +616,7 @@ func (app *App) archive_contact_post_handler(w http.ResponseWriter, r *http.Requ
 		myArchiver.Run()
 	}()
 
-	time.Sleep(1000 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
 
 	err := app.Templates.Render(w, "archive_ui", myArchiver)
 	if err != nil {
@@ -624,7 +626,7 @@ func (app *App) archive_contact_post_handler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (app *App) archive_contact_get_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) archive_get_handler(w http.ResponseWriter, r *http.Request) {
 
 	err := app.Templates.Render(w, "archive_ui", myArchiver)
 	if err != nil {
@@ -632,6 +634,13 @@ func (app *App) archive_contact_get_handler(w http.ResponseWriter, r *http.Reque
 		log.Error("archive_contact_handler: error in app.Templates.Render()", "error", err)
 		return
 	}
+}
+
+func (app *App) archive_file_handler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Disposition", `attachment; filename="contacts.json"`)
+
+	// Serve the file
+	http.ServeFile(w, r, "contacts.json")
 }
 
 // AUXILIARY FUNCTIONS
