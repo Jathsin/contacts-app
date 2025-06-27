@@ -31,16 +31,27 @@
 <form action="/contacts" method="get" class="tool-bar">
     <label for="search">Search Term</label>
     <input id="search" type="search" name="q" value="{{ .Query }}" hx-get="/contacts" hx-push-url="true"
-        hx-trigger="search, keyup delay:200ms changed" hx-target="tbody" hx-select="tbody tr" hx-indicator="#spinner" />
+        hx-trigger="search, keyup delay:200ms changed" hx-target="tbody" hx-select="tbody tr" hx-indicator="#spinner"
+        _="on keydown[altKey and code is 'KeyS'] from the window focus() me" />
     <input type="submit" value="Search" />
 
 </form>
 {{ end }}
 
-
 {{ block "contact_table" . }}
 <hr>
-<form>
+<form x-data="{selected: []}">
+    <template x-if="selected.length > 0">
+        <div class="box info tool-bat">
+            <slot x-text="selected.length"></slot>
+            contacts selected
+            <button type="button" class="bad bg color border" @click="confirm(`Delete ${selected.length} contacts?`) &&
+            htmx.ajax('DELETE', '/contacts', { source: $root, target: document.body })">Delete</button>
+            <hr arie-orientation="vertical">
+            <button type="button" @click="selected=[]">Cancel</button>
+        </div>
+    </template>
+
     <table>
         <thead>
             <tr>
@@ -61,8 +72,11 @@
         <a href="/contacts?page={{ add .Page 1 }}">Next</a>
         {{ end }}
     </p>
-    <button hx-delete="/contacts" hx-confirm="Are you sure you want to delete these contacts?" hx-target="body">
+    <button hx-delete="/contacts" hx-confirm="Want to kill?" hx-swap="outerHTML swap:1s" hx-target="body">
         Delete Selected Contacts
     </button>
 </form>
 {{end}}
+
+hx-delete="/contacts/{{ .ID }}" hx-confirm="Are you sure you want to kill this contact?"
+hx-swap="outerHTML swap:1s" hx-target="closest tr"

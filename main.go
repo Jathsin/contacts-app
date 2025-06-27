@@ -73,7 +73,7 @@ func main() {
 	// TODO: fix serving spinning circles
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
-	// Define endpoints
+	// hypermedia api
 	mux.HandleFunc("GET /", redirect_handler)
 
 	mux.HandleFunc("GET /contacts", app.contact_query_handler)
@@ -104,6 +104,11 @@ func main() {
 
 	mux.HandleFunc("GET /contacts/archive/file", app.archive_file_handler)
 
+	// json api
+	mux.HandleFunc("GET /api/v1/contacts", get_contacts_handler)
+
+	mux.HandleFunc("POST /api/v1/contacts", post_contacts_handler)
+
 	// Start server
 	server := http.Server{
 		Addr:         ":8080",
@@ -123,11 +128,12 @@ func redirect_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 type Contact struct {
-	ID    int    `json:"id"`
-	First string `json:"first"`
-	Last  string `json:"last"`
-	Email string `json:"email"`
-	Phone string `json:"phone"`
+	ID     int               `json:"id"`
+	First  string            `json:"first"`
+	Last   string            `json:"last"`
+	Email  string            `json:"email"`
+	Phone  string            `json:"phone"`
+	Errors map[string]string `json:"errors"`
 }
 
 type PageData struct {
@@ -303,6 +309,7 @@ func (app *App) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 		last,
 		email,
 		phone,
+		nil,
 	}
 
 	if success {
@@ -310,6 +317,12 @@ func (app *App) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 		contacts = append(contacts, c)
 
 		// TODO: show message to the user
+		// 		document.body.addEventListener('htmx:beforeSwap', evt => { <1>
+		//   if (evt.detail.xhr.status === 404) { <2>
+		//     showNotFoundError();
+		//   }
+		// });
+
 		log.Info("Contact successfully added")
 		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(c.ID))
 		w.WriteHeader(http.StatusOK)
@@ -462,9 +475,7 @@ func (app *App) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 	phone := r.FormValue("phone")
 
 	// TODO: verify fields are valid
-	if email == "" {
-		errors["email"] = "Email is required"
-	}
+	errors["email"] = validate_email(id_int, email)
 	if first == "" {
 		errors["first"] = "First name is required"
 	}
@@ -640,7 +651,7 @@ func (app *App) archive_get_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// /contacts/archive
+// DELETE /contacts/archive
 func (app *App) archive_delete_handler(w http.ResponseWriter, r *http.Request) {
 
 	myArchiver.Reset()
@@ -659,6 +670,68 @@ func (app *App) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Serve the file
 	http.ServeFile(w, r, "contacts.json")
+}
+
+// GET /api/v1/contacts
+func get_contacts_handler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	http.ServeFile(w, r, "contacts.json")
+}
+
+// POST /api/v1/contacts
+func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
+	// Initialize the error map
+	errors := make(map[string]string)
+
+	// Get form values
+	c := Contact{
+		ID:     contacts[len(contacts)-1].ID + 1,
+		First:  r.FormValue("first_name"),
+		Last:   r.FormValue("last_name"),
+		Email:  r.FormValue("email"),
+		Phone:  r.FormValue("phone"),
+		Errors: nil,
+	}
+
+	// TODO: verify fields are valid
+	errors["email"] = validate_email(-1, c.Email)
+	if c.First == "" {
+		errors["first"] = "First name is required"
+	}
+	if c.Last == "" {
+		errors["last"] = "Last name is required"
+	}
+	if c.Phone == "" {
+		errors["phone"] = "Phone is required"
+	}
+
+	if len(errors) == 0 {
+		contacts = append(contacts, c)
+		// Return success response
+		jsonData, _ := json.Marshal(c)
+		w.WriteHeader(http.StatusCreated)
+		_, err := w.Write(jsonData)
+		if err != nil {
+			http.Error(w, "Could not show created contact on screen", http.StatusInternalServerError)
+			log.Error("post_contacts_handler: error in w.Write(jsonData), successfull response", "error", err)
+		}
+	} else {
+		// Convert errors map to JSON and return
+		errorResponse := map[string]interface{}{
+			"message": "Could not add contact due to incorrect format",
+			"errors":  errors,
+		}
+		jsonData, _ := json.Marshal(errorResponse)
+		w.WriteHeader(http.StatusBadRequest)
+		_, err := w.Write(jsonData)
+		if err != nil {
+			http.Error(w, "Could not show error on screen", http.StatusInternalServerError)
+			log.Error("post_contacts_handler: error in w.Write(jsonData)", "error", err)
+		}
+
+		log.Error("post_contacts_handler: wrong contact format: ", "errors", jsonData)
+	}
+
 }
 
 // -----------------------------------------------------------------------------
