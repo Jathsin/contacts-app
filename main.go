@@ -80,13 +80,13 @@ func main() {
 
 	mux.HandleFunc("GET /contacts/{id}", app.contact_id_handler)
 
-	mux.HandleFunc("GET /contacts/new", app.add_contact_get_handler)
+	mux.HandleFunc("GET /contacts/new", app.get_add_contact_handler)
 
-	mux.HandleFunc("POST /contacts/new", app.add_contact_post_handler)
+	mux.HandleFunc("POST /contacts/new", app.post_add_contact_handler)
 
-	mux.HandleFunc("GET /contacts/{id}/edit", app.edit_contact_get_handler)
+	mux.HandleFunc("GET /contacts/{id}/edit", app.get_edit_contact_handler)
 
-	mux.HandleFunc("POST /contacts/{id}/edit", app.edit_contact_post_handler)
+	mux.HandleFunc("POST /contacts/{id}/edit", app.post_edit_contact_handler)
 
 	mux.HandleFunc("DELETE /contacts/{id}", app.delete_contact_handler)
 
@@ -96,11 +96,11 @@ func main() {
 
 	mux.HandleFunc("GET /contacts/{id}/email", app.validate_email_handler)
 
-	mux.HandleFunc("POST /contacts/archive", app.archive_post_handler)
+	mux.HandleFunc("POST /contacts/archive", app.post_archive_handler)
 
-	mux.HandleFunc("GET /contacts/archive", app.archive_get_handler)
+	mux.HandleFunc("GET /contacts/archive", app.get_archive_handler)
 
-	mux.HandleFunc("DELETE /contacts/archive", app.archive_delete_handler)
+	mux.HandleFunc("DELETE /contacts/archive", app.delete_archive_handler)
 
 	mux.HandleFunc("GET /contacts/archive/file", app.archive_file_handler)
 
@@ -108,6 +108,10 @@ func main() {
 	mux.HandleFunc("GET /api/v1/contacts", get_contacts_handler)
 
 	mux.HandleFunc("POST /api/v1/contacts", post_contacts_handler)
+
+	mux.HandleFunc("GET /api/v1/contacts/{id}", get_contact_handler)
+
+	mux.HandleFunc("PUT /api/v1/contacts/{id}", put_contact_handler)
 
 	// Start server
 	server := http.Server{
@@ -259,7 +263,7 @@ func (app *App) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *App) add_contact_get_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) get_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	var form_data form_data
 	err := app.Templates.Render(w, "new", form_data)
@@ -271,7 +275,7 @@ func (app *App) add_contact_get_handler(w http.ResponseWriter, r *http.Request) 
 }
 
 // /contacts/new
-func (app *App) add_contact_post_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	success := true
 
@@ -344,8 +348,8 @@ func (app *App) add_contact_post_handler(w http.ResponseWriter, r *http.Request)
 
 }
 
-// /contacts/{id}/edit
-func (app *App) edit_contact_get_handler(w http.ResponseWriter, r *http.Request) {
+// GET /contacts/{id}/edit
+func (app *App) get_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse id
 	id_string := r.PathValue("id")
@@ -373,8 +377,8 @@ func (app *App) edit_contact_get_handler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-// /contacts/{id}/edit
-func (app *App) edit_contact_post_handler(w http.ResponseWriter, r *http.Request) {
+// POST /contacts/{id}/edit
+func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -453,7 +457,7 @@ func (app *App) edit_contact_post_handler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// /contacts/{id}/edit
+// DELETE /contacts/{id}/edit
 func (app *App) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
@@ -463,27 +467,6 @@ func (app *App) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
 		log.Error("delete_contact_handler: error in strconv.Atoi(id)", "error", err)
 		return
-	}
-
-	// Initialize the error map
-	errors := make(map[string]string)
-
-	// Get form values
-	email := r.FormValue("email")
-	first := r.FormValue("first_name")
-	last := r.FormValue("last_name")
-	phone := r.FormValue("phone")
-
-	// TODO: verify fields are valid
-	errors["email"] = validate_email(id_int, email)
-	if first == "" {
-		errors["first"] = "First name is required"
-	}
-	if last == "" {
-		errors["last"] = "Last name is required"
-	}
-	if phone == "" {
-		errors["phone"] = "Phone is required"
 	}
 
 	// Delete contact
@@ -502,25 +485,10 @@ func (app *App) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// We cannot delete contact
-	log.Info("delete_contact: contact not found")
-	form_data := form_data{
-		Contact: Contact{
-			ID:    id_int, //default
-			Email: email,
-			First: first,
-			Last:  last,
-			Phone: phone,
-		},
-		Errors: errors,
-	}
+	// We cannot delete contact, which should always be possible form this endpoint
+	http.Error(w, "Error deleting contact", http.StatusInternalServerError)
+	log.Error("delete_contact: contact not found")
 
-	err = app.Templates.Render(w, "edit", form_data)
-	if err != nil {
-		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
-		log.Error("delete_contact_handler: error in app.Templates.Render()", "error", err)
-		return
-	}
 }
 
 func (app *App) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
@@ -619,7 +587,7 @@ func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /contacts/archive
-func (app *App) archive_post_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) post_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Concurrent processing
 	var wg sync.WaitGroup
@@ -641,7 +609,7 @@ func (app *App) archive_post_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /contacts/archive
-func (app *App) archive_get_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) get_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 	err := app.Templates.Render(w, "archive_ui", myArchiver)
 	if err != nil {
@@ -652,7 +620,7 @@ func (app *App) archive_get_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // DELETE /contacts/archive
-func (app *App) archive_delete_handler(w http.ResponseWriter, r *http.Request) {
+func (app *App) delete_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 	myArchiver.Reset()
 	err := app.Templates.Render(w, "archive_ui", myArchiver)
@@ -680,8 +648,6 @@ func get_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/contacts
 func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
-	// Initialize the error map
-	errors := make(map[string]string)
 
 	// Get form values
 	c := Contact{
@@ -690,22 +656,24 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 		Last:   r.FormValue("last_name"),
 		Email:  r.FormValue("email"),
 		Phone:  r.FormValue("phone"),
-		Errors: nil,
+		Errors: make(map[string]string),
 	}
 
 	// TODO: verify fields are valid
-	errors["email"] = validate_email(-1, c.Email)
+	c.Errors["email"] = validate_email(-1, c.Email)
 	if c.First == "" {
-		errors["first"] = "First name is required"
+		c.Errors["first"] = "First name is required"
 	}
 	if c.Last == "" {
-		errors["last"] = "Last name is required"
+		c.Errors["last"] = "Last name is required"
 	}
 	if c.Phone == "" {
-		errors["phone"] = "Phone is required"
+		c.Errors["phone"] = "Phone is required"
 	}
 
-	if len(errors) == 0 {
+	w.Header().Set("Content-Type", "application/json")
+
+	if len(c.Errors) == 0 {
 		contacts = append(contacts, c)
 		// Return success response
 		jsonData, _ := json.Marshal(c)
@@ -719,18 +687,82 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 		// Convert errors map to JSON and return
 		errorResponse := map[string]interface{}{
 			"message": "Could not add contact due to incorrect format",
-			"errors":  errors,
+			"errors":  c.Errors,
 		}
 		jsonData, _ := json.Marshal(errorResponse)
 		w.WriteHeader(http.StatusBadRequest)
 		_, err := w.Write(jsonData)
 		if err != nil {
-			http.Error(w, "Could not show error on screen", http.StatusInternalServerError)
+			http.Error(w, "Could not show error on screen", http.StatusBadRequest)
 			log.Error("post_contacts_handler: error in w.Write(jsonData)", "error", err)
 		}
 
 		log.Error("post_contacts_handler: wrong contact format: ", "errors", jsonData)
 	}
+
+}
+
+// /GET /api/v1/contacts/{id}
+
+func get_contact_handler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
+
+	id_string := r.PathValue("id")
+
+	// Parse id
+	id_int, err := strconv.Atoi(id_string)
+	if err != nil {
+		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
+		log.Error("get_contact_handler: error in strconv.Atoi(id)", "error", err)
+		return
+	}
+
+	// Search for specific contact
+	c, err := find_contact(id_int)
+	if err != nil {
+		http.Error(w, "Error, contact not found", http.StatusBadRequest)
+		log.Error("get_contact_handler: error in find_contact", "error", err)
+		return
+	}
+
+	// Show contact information
+	jsonData, _ := json.Marshal(c)
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write(jsonData)
+	if err != nil {
+		http.Error(w, "Error showing contact information", http.StatusInternalServerError)
+		log.Error("get_contact_handler: error in w.Write(jsonData)", "error", err)
+		return
+	}
+}
+
+// PUT /api/v1/contacts
+func put_contact_handler(w http.ResponseWriter, r *http.Request) {
+
+	// Get form values
+	c := Contact{
+		ID:     contacts[len(contacts)-1].ID + 1,
+		First:  r.FormValue("first_name"),
+		Last:   r.FormValue("last_name"),
+		Email:  r.FormValue("email"),
+		Phone:  r.FormValue("phone"),
+		Errors: make(map[string]string),
+	}
+
+	// TODO: verify fields are valid
+	c.Errors["email"] = validate_email(-1, c.Email)
+	if c.First == "" {
+		c.Errors["first"] = "First name is required"
+	}
+	if c.Last == "" {
+		c.Errors["last"] = "Last name is required"
+	}
+	if c.Phone == "" {
+		c.Errors["phone"] = "Phone is required"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 
 }
 
