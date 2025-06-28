@@ -6,31 +6,30 @@
 
 {{ block "edit-form" . }}
 
-<form action="/contacts/{{ .Contact.ID }}/edit" method="post">
+<form action="/contacts/{{ .ID }}/edit" method="post">
     <fieldset>
         <legend>Contact Values</legend>
         <div class="table rows">
             <p>
                 <label for="email">Email</label>
-                <input name="email" id="email" type="email" hx-get="/contacts/{{ .Contact.ID }}/email"
+                <input name="email" id="email" type="email" hx-get="/contacts/{{ .ID }}/email"
                     hx-trigger="change, keyup delay:200ms changed" hx-target="next .error" placeholder="Email"
-                    value="{{ .Contact.Email }}">
-                {{ template "error_email" . }}
+                    value="{{ .Email }}">
+                <span class="error">{{ index .Errors "email" }}</span>
             </p>
             <p>
                 <label for="first_name">First Name</label>
-                <input name="first_name" id="first_name" type="text" placeholder="First Name"
-                    value="{{ .Contact.First }}">
+                <input name="first_name" id="first_name" type="text" placeholder="First Name" value="{{ .First }}">
                 <span class="error">{{ index .Errors "first" }}</span>
             </p>
             <p>
                 <label for="last_name">Last Name</label>
-                <input name="last_name" id="last_name" type="text" placeholder="Last Name" value="{{ .Contact.Last }}">
+                <input name="last_name" id="last_name" type="text" placeholder="Last Name" value="{{ .Last }}">
                 <span class="error">{{ index .Errors "last" }}</span>
             </p>
             <p>
                 <label for="phone">Phone</label>
-                <input name="phone" id="phone" type="text" placeholder="Phone" value="{{ .Contact.Phone }}">
+                <input name="phone" id="phone" type="text" placeholder="Phone" value="{{ .Phone }}">
                 <span class="error">{{ index .Errors "phone" }}</span>
             </p>
         </div>
@@ -39,15 +38,10 @@
 </form>
 
 
-<button id="delete-btn" hx-delete="/contacts/{{ .Contact.ID }}" hx-target="body" hx-push-url="true"
+<button id="delete-btn" hx-delete="/contacts/{{ .ID }}" hx-target="body" hx-push-url="true"
     hx-confirm="Are you sure you want to kill this contact?">Delete Contact</button>
 
 <p>
     <a href="/contacts/">Back</a>
 </p>
 {{ end }}
-
-
-{{ block "error_email" . }}
-<span class="error">{{ index .Errors "email" }}</span>
-{{end}}

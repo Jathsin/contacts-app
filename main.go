@@ -113,6 +113,8 @@ func main() {
 
 	mux.HandleFunc("PUT /api/v1/contacts/{id}", put_contact_handler)
 
+	mux.HandleFunc("DELETE /api/v1/contacts/{id}", delete_contact_handler)
+
 	// Start server
 	server := http.Server{
 		Addr:         ":8080",
@@ -367,9 +369,7 @@ func (app *App) get_edit_contact_handler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var form_data form_data
-	form_data.Contact = *c
-	err = app.Templates.Render(w, "edit", form_data)
+	err = app.Templates.Render(w, "edit", c)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
 		log.Error("edit_contact_get_handler: error in app.Templates.Render()", "error", err)
@@ -389,35 +389,33 @@ func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Initialize the error map
-	errors := make(map[string]string)
-
 	// Get form values
-	email := r.FormValue("email")
-	first := r.FormValue("first_name")
-	last := r.FormValue("last_name")
-	phone := r.FormValue("phone")
-
-	success := true
+	c := Contact{
+		ID:     contacts[len(contacts)-1].ID + 1,
+		First:  r.FormValue("first_name"),
+		Last:   r.FormValue("last_name"),
+		Email:  r.FormValue("email"),
+		Phone:  r.FormValue("phone"),
+		Errors: make(map[string]string),
+	}
 
 	// TODO: verify fields are valid
-	errors["email"] = validate_email(id_int, email)
-	if first == "" {
-		errors["first"] = "First name is required"
-		success = false
+	if c.Email == "" {
+		c.Errors["email"] = "Email is required"
 	}
-	if last == "" {
-		errors["last"] = "Last name is required"
-		success = false
+	if c.First == "" {
+		c.Errors["first"] = "First name is required"
 	}
-	if phone == "" {
-		errors["phone"] = "Phone is required"
-		success = false
+	if c.Last == "" {
+		c.Errors["last"] = "Last name is required"
+	}
+	if c.Phone == "" {
+		c.Errors["phone"] = "Phone is required"
 	}
 
-	if errors["email"] == "" && success {
+	if len(c.Errors) == 0 {
 		// Search for c to edit
-		c, err := find_contact(id_int)
+		contact, err := find_contact(id_int)
 		if err != nil {
 			http.Error(w, "Error, contact not found", http.StatusBadRequest)
 			log.Error("edit_contact_post_handler: error in find_contact", "error", err)
@@ -425,10 +423,11 @@ func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 		}
 
 		// Replace with editted data
-		c.Email = email
-		c.First = first
-		c.Last = last
-		c.Phone = phone
+		contact.Email = c.Email
+		contact.First = c.First
+		contact.Last = c.Last
+		contact.Phone = c.Phone
+		contact.Errors = c.Errors
 
 		// TODO: show message to the user
 		log.Info("Contact edited successfully")
@@ -437,19 +436,7 @@ func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// We cannot edit contact
-	form_data := form_data{
-		Contact: Contact{
-			ID:    id_int, //default
-			Email: email,
-			First: first,
-			Last:  last,
-			Phone: phone,
-		},
-		Errors: errors,
-	}
-
-	err = app.Templates.Render(w, "edit", form_data)
+	err = app.Templates.Render(w, "edit", c)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
 		log.Error("edit_contact_post_handler: error in app.Templates.Render()", "error", err)
@@ -660,7 +647,10 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: verify fields are valid
-	c.Errors["email"] = validate_email(-1, c.Email)
+	email_error := validate_email(-1, c.Email)
+	if email_error != "" {
+		c.Errors["email"] = email_error
+	}
 	if c.First == "" {
 		c.Errors["first"] = "First name is required"
 	}
@@ -675,14 +665,10 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 	if len(c.Errors) == 0 {
 		contacts = append(contacts, c)
-		// Return success response
-		jsonData, _ := json.Marshal(c)
-		w.WriteHeader(http.StatusCreated)
-		_, err := w.Write(jsonData)
-		if err != nil {
-			http.Error(w, "Could not show created contact on screen", http.StatusInternalServerError)
-			log.Error("post_contacts_handler: error in w.Write(jsonData), successfull response", "error", err)
-		}
+		// TODO: show message to the user
+		log.Info("Contact edited successfully")
+		return
+
 	} else {
 		// Convert errors map to JSON and return
 		errorResponse := map[string]interface{}{
@@ -695,6 +681,7 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, "Could not show error on screen", http.StatusBadRequest)
 			log.Error("post_contacts_handler: error in w.Write(jsonData)", "error", err)
+			return
 		}
 
 		log.Error("post_contacts_handler: wrong contact format: ", "errors", jsonData)
@@ -703,7 +690,6 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /GET /api/v1/contacts/{id}
-
 func get_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
@@ -740,9 +726,18 @@ func get_contact_handler(w http.ResponseWriter, r *http.Request) {
 // PUT /api/v1/contacts
 func put_contact_handler(w http.ResponseWriter, r *http.Request) {
 
+	id_string := r.PathValue("id")
+	// Parse id
+	id_int, err := strconv.Atoi(id_string)
+	if err != nil {
+		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
+		log.Error("put_contact_handler: error in strconv.Atoi(id)", "error", err)
+		return
+	}
+
 	// Get form values
 	c := Contact{
-		ID:     contacts[len(contacts)-1].ID + 1,
+		ID:     id_int,
 		First:  r.FormValue("first_name"),
 		Last:   r.FormValue("last_name"),
 		Email:  r.FormValue("email"),
@@ -751,7 +746,10 @@ func put_contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO: verify fields are valid
-	c.Errors["email"] = validate_email(-1, c.Email)
+	email_error := validate_email(-1, c.Email)
+	if email_error != "" {
+		c.Errors["email"] = email_error
+	}
 	if c.First == "" {
 		c.Errors["first"] = "First name is required"
 	}
@@ -763,6 +761,72 @@ func put_contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
+
+	if len(c.Errors) == 0 {
+		// Search for c to edit
+		contact, err := find_contact(id_int)
+		if err != nil {
+			http.Error(w, "Error, contact not found", http.StatusBadRequest)
+			log.Error("put_contact_handler: error in find_contact", "error", err)
+			return
+		}
+
+		// Replace with editted data
+		contact.Email = c.Email
+		contact.First = c.First
+		contact.Last = c.Last
+		contact.Phone = c.Phone
+		contact.Errors = c.Errors
+
+		// TODO: show message to the user
+		log.Info("Contact edited successfully")
+		return
+
+	} else {
+		// Convert errors map to JSON and return
+		errorResponse := map[string]interface{}{
+			"message": "Could not edit contact due to incorrect format",
+			"errors":  c.Errors,
+		}
+		jsonData, _ := json.Marshal(errorResponse)
+		w.WriteHeader(http.StatusBadRequest)
+		_, err := w.Write(jsonData)
+		if err != nil {
+			http.Error(w, "Could not show error on screen", http.StatusBadRequest)
+			log.Error("put_contact_handler: error in w.Write(jsonData)", "error", err)
+			return
+		}
+
+		log.Error("put_contact_handler: wrong contact format: ", "errors", jsonData)
+	}
+}
+
+func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
+
+	id_string := r.PathValue("id")
+	// Parse id
+	id_int, err := strconv.Atoi(id_string)
+	if err != nil {
+		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
+		log.Error("delete_contact_handler: error in strconv.Atoi(id)", "error", err)
+		return
+	}
+
+	// Delete contact
+	for i, c := range contacts {
+		if c.ID == id_int {
+			// Remove the contact at index i
+			contacts = append(contacts[:i], contacts[i+1:]...)
+
+			// TODO: show message to the user
+			log.Info("Contact deleted succesfully")
+			return
+		}
+	}
+
+	// We cannot delete contact, which should always be possible form this endpoint
+	http.Error(w, "Error deleting contact", http.StatusInternalServerError)
+	log.Error("delete_contact: contact not found")
 
 }
 
