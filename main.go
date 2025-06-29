@@ -36,7 +36,7 @@ func (t *Templates) Render(w io.Writer, name string, data interface{}) error {
 	return t.templates.ExecuteTemplate(w, name, data)
 }
 
-// Extend template parsing understanding
+// Add functionalities to template parsing
 func newTemplate() *Templates {
 	tmpl := template.New("layout").Funcs(template.FuncMap{
 		"add": func(a, b int) int {
@@ -171,14 +171,12 @@ func (app *App) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 			page = 1
 		}
 
-		//	TODO: fix writeHeader superfluous call
 		err := app.Templates.Render(w, "index", PageData{get_contact_list(page), "", page, myArchiver})
 		if err != nil {
 			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
 			log.Error("contact_query_handler: error in app.Templates.Render()", "error", err)
 			return
 		}
-
 		return
 	}
 
@@ -198,9 +196,8 @@ func (app *App) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := PageData{[]Contact{*c}, id_string, 0, myArchiver}
-
 	// Show contact information
+	data := PageData{[]Contact{*c}, id_string, 0, myArchiver}
 	err = app.Templates.Render(w, "index", data)
 	if err != nil {
 		http.Error(w, "Error finding contact", http.StatusBadRequest)
@@ -218,12 +215,14 @@ func (app *App) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 
 	if id_string == "" {
 
+		// Show first 10 contacts
 		page_string := r.URL.Query().Get("page")
 		page, _ := strconv.Atoi(page_string)
 		if page <= 0 {
 			page = 1
 		}
 
+		// Show contact information depending on trigger
 		var err error
 		if r.Header.Get("HX-Trigger") == "search" {
 			err = app.Templates.Render(w, "rows", PageData{get_contact_list(page), "", page, myArchiver})
@@ -265,10 +264,11 @@ func (app *App) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GET /contacts/new
 func (app *App) get_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
-	var form_data form_data
-	err := app.Templates.Render(w, "new", form_data)
+	var c Contact
+	err := app.Templates.Render(w, "new", c)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
 		log.Error("add_contact_get_handler: error in app.Templates.Render()", "error", err)
@@ -276,49 +276,37 @@ func (app *App) get_add_contact_handler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// /contacts/new
+// POST /contacts/new
 func (app *App) post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
-	success := true
-
-	// Initialize the error map
-	errors := make(map[string]string)
-
 	// Get form values
-	email := r.FormValue("email")
-	first := r.FormValue("first_name")
-	last := r.FormValue("last_name")
-	phone := r.FormValue("phone")
+	c := Contact{
+		ID:     contacts[len(contacts)-1].ID + 1,
+		First:  r.FormValue("first_name"),
+		Last:   r.FormValue("last_name"),
+		Email:  r.FormValue("email"),
+		Phone:  r.FormValue("phone"),
+		Errors: make(map[string]string),
+	}
 
 	// TODO: verify fields are valid
-	if email == "" {
-		errors["email"] = "Email is required"
-		success = false
+	email_error := validate_email(-1, c.Email)
+	if email_error != "" {
+		// We must check this in order to keep the map length to zero when
+		// no errors are found
+		c.Errors["email"] = email_error
 	}
-	if first == "" {
-		errors["first"] = "First name is required"
-		success = false
+	if c.First == "" {
+		c.Errors["first"] = "First name is required"
 	}
-	if last == "" {
-		errors["last"] = "Last name is required"
-		success = false
+	if c.Last == "" {
+		c.Errors["last"] = "Last name is required"
 	}
-	if phone == "" {
-		errors["phone"] = "Phone is required"
-		success = false
-	}
-
-	c := Contact{
-		// Depends on initial json file
-		contacts[len(contacts)-1].ID + 1,
-		first,
-		last,
-		email,
-		phone,
-		nil,
+	if c.Phone == "" {
+		c.Errors["phone"] = "Phone is required"
 	}
 
-	if success {
+	if len(c.Errors) == 0 {
 		// Add contact to contacts
 		contacts = append(contacts, c)
 
@@ -336,12 +324,7 @@ func (app *App) post_add_contact_handler(w http.ResponseWriter, r *http.Request)
 	}
 
 	// We cannot add contact
-	form_data := form_data{
-		Contact: c,
-		Errors:  errors,
-	}
-
-	err := app.Templates.Render(w, "new", form_data)
+	err := app.Templates.Render(w, "new", c)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
 		log.Error("add_contact_post_handler: error in app.Templates.Render()", "error", err)
@@ -391,7 +374,7 @@ func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 
 	// Get form values
 	c := Contact{
-		ID:     contacts[len(contacts)-1].ID + 1,
+		ID:     id_int,
 		First:  r.FormValue("first_name"),
 		Last:   r.FormValue("last_name"),
 		Email:  r.FormValue("email"),
@@ -400,8 +383,11 @@ func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 	}
 
 	// TODO: verify fields are valid
-	if c.Email == "" {
-		c.Errors["email"] = "Email is required"
+	email_error := validate_email(id_int, c.Email)
+	if email_error != "" {
+		// We must check this in order to keep the map length to zero when
+		// no errors are found
+		c.Errors["email"] = email_error
 	}
 	if c.First == "" {
 		c.Errors["first"] = "First name is required"
@@ -555,17 +541,9 @@ func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Check email is unique
 	email := r.URL.Query().Get("email")
-	error_msg := validate_email(id_int, email)
+	c.Errors["email"] = validate_email(id_int, email)
 
-	Errors := make(map[string]string)
-	Errors["email"] = error_msg
-
-	form_data := form_data{
-		*c,
-		Errors,
-	}
-
-	err = app.Templates.Render(w, "error_email", form_data)
+	err = app.Templates.Render(w, "error_email", c)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
 		log.Error("validate_email_handler: error in app.Templates.Render()", "error", err)
@@ -616,11 +594,11 @@ func (app *App) delete_archive_handler(w http.ResponseWriter, r *http.Request) {
 		log.Error("archive_delete_handler: error in app.Templates.Render()", "error", err)
 		return
 	}
-
 }
 
 // /contacts/archive/file
 func (app *App) archive_file_handler(w http.ResponseWriter, r *http.Request) {
+
 	w.Header().Set("Content-Disposition", `attachment; filename="contacts.json"`)
 
 	// Serve the file
@@ -629,12 +607,26 @@ func (app *App) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 
 // GET /api/v1/contacts
 func get_contacts_handler(w http.ResponseWriter, r *http.Request) {
+
 	w.Header().Set("Content-Type", "application/json")
-	http.ServeFile(w, r, "contacts.json")
+	jsonData, err := json.Marshal(contacts)
+	if err != nil {
+		http.Error(w, "Error converting contacts into JSON", http.StatusInternalServerError)
+		log.Error("get_contacts_handler: error in json.Marshal(contacts)", "error", err)
+		return
+	}
+	_, err = w.Write(jsonData)
+	if err != nil {
+		http.Error(w, "Error writing response", http.StatusInternalServerError)
+		log.Error("get_contacts_handler: error in w.Write(jsonData)", "error", err)
+		return
+	}
 }
 
 // POST /api/v1/contacts
 func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "application/json")
 
 	// Get form values
 	c := Contact{
@@ -649,6 +641,8 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	// TODO: verify fields are valid
 	email_error := validate_email(-1, c.Email)
 	if email_error != "" {
+		// We must check this in order to keep the map length to zero when
+		// no errors are found
 		c.Errors["email"] = email_error
 	}
 	if c.First == "" {
@@ -660,8 +654,6 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	if c.Phone == "" {
 		c.Errors["phone"] = "Phone is required"
 	}
-
-	w.Header().Set("Content-Type", "application/json")
 
 	if len(c.Errors) == 0 {
 		contacts = append(contacts, c)
@@ -801,6 +793,7 @@ func put_contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DELETE /api/v1/contacts/{id}
 func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
@@ -824,16 +817,15 @@ func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// We cannot delete contact, which should always be possible form this endpoint
 	http.Error(w, "Error deleting contact", http.StatusInternalServerError)
 	log.Error("delete_contact: contact not found")
-
 }
 
 // -----------------------------------------------------------------------------
 
 // AUXILIARY FUNCTIONS
 func logging(f http.Handler) http.Handler {
+
 	return (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := uuid.New().String()
 		log := log.With("request_id", id)
@@ -866,6 +858,7 @@ func load_contacts() error {
 }
 
 func find_contact(id int) (*Contact, error) {
+
 	for i := range contacts {
 		if contacts[i].ID == id {
 			return &contacts[i], nil
@@ -875,6 +868,7 @@ func find_contact(id int) (*Contact, error) {
 }
 
 func get_contact_list(page int) []Contact {
+
 	p := page - 1
 	limit := p*10 + 10
 	var contact_set []Contact
@@ -886,6 +880,7 @@ func get_contact_list(page int) []Contact {
 }
 
 func validate_email(id int, email string) string {
+
 	if email == "" {
 		return "Email is empty"
 	}

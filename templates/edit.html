@@ -10,12 +10,13 @@
     <fieldset>
         <legend>Contact Values</legend>
         <div class="table rows">
+
             <p>
                 <label for="email">Email</label>
                 <input name="email" id="email" type="email" hx-get="/contacts/{{ .ID }}/email"
                     hx-trigger="change, keyup delay:200ms changed" hx-target="next .error" placeholder="Email"
                     value="{{ .Email }}">
-                <span class="error">{{ index .Errors "email" }}</span>
+                {{ template "error_email" . }}
             </p>
             <p>
                 <label for="first_name">First Name</label>
@@ -45,3 +46,7 @@
     <a href="/contacts/">Back</a>
 </p>
 {{ end }}
+
+{{ block "error_email" . }}
+<span class="error">{{ index .Errors "email" }}</span>
+{{end}}
