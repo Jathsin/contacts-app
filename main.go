@@ -129,6 +129,10 @@ func main() {
 	}
 }
 
+//------------------------------------------------------------------------------
+// Hypermedia Api
+//------------------------------------------------------------------------------
+
 func redirect_handler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/contacts", http.StatusFound)
 }
@@ -147,11 +151,6 @@ type PageData struct {
 	Query    string
 	Page     int
 	Archiver archiver.Archiver
-}
-
-type form_data struct {
-	Contact Contact
-	Errors  map[string]string
 }
 
 // /contacts?q={id} and /contacts/{id}
@@ -267,6 +266,8 @@ func (app *App) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 // GET /contacts/new
 func (app *App) get_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
+	w.Header().Set("Content-Type", "text/html")
+
 	var c Contact
 	err := app.Templates.Render(w, "new", c)
 	if err != nil {
@@ -279,6 +280,8 @@ func (app *App) get_add_contact_handler(w http.ResponseWriter, r *http.Request) 
 // POST /contacts/new
 func (app *App) post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
+	w.Header().Set("Content-Type", "text/html")
+
 	// Get form values
 	c := Contact{
 		ID:     contacts[len(contacts)-1].ID + 1,
@@ -289,7 +292,6 @@ func (app *App) post_add_contact_handler(w http.ResponseWriter, r *http.Request)
 		Errors: make(map[string]string),
 	}
 
-	// TODO: verify fields are valid
 	email_error := validate_email(-1, c.Email)
 	if email_error != "" {
 		// We must check this in order to keep the map length to zero when
@@ -330,11 +332,12 @@ func (app *App) post_add_contact_handler(w http.ResponseWriter, r *http.Request)
 		log.Error("add_contact_post_handler: error in app.Templates.Render()", "error", err)
 		return
 	}
-
 }
 
 // GET /contacts/{id}/edit
 func (app *App) get_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "text/html")
 
 	// Parse id
 	id_string := r.PathValue("id")
@@ -363,6 +366,8 @@ func (app *App) get_edit_contact_handler(w http.ResponseWriter, r *http.Request)
 // POST /contacts/{id}/edit
 func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 
+	w.Header().Set("Content-Type", "text/html")
+
 	id_string := r.PathValue("id")
 	// Parse id
 	id_int, err := strconv.Atoi(id_string)
@@ -382,7 +387,6 @@ func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 		Errors: make(map[string]string),
 	}
 
-	// TODO: verify fields are valid
 	email_error := validate_email(id_int, c.Email)
 	if email_error != "" {
 		// We must check this in order to keep the map length to zero when
@@ -464,6 +468,7 @@ func (app *App) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// /contacts/count
 func (app *App) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 	count := len(contacts)
@@ -477,6 +482,8 @@ func (app *App) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /contacts
 func (app *App) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "text/html")
 
 	// Parse ids
 	err := r.ParseForm()
@@ -524,6 +531,8 @@ func (app *App) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.
 // /contacts/{id}/{email}
 func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 
+	w.Header().Set("Content-Type", "text/html")
+
 	id_string := r.PathValue("id")
 	// Parse id
 	id_int, err := strconv.Atoi(id_string)
@@ -553,6 +562,8 @@ func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 
 // /contacts/archive
 func (app *App) post_archive_handler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "text/html")
 
 	// Concurrent processing
 	var wg sync.WaitGroup
@@ -605,6 +616,10 @@ func (app *App) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "contacts.json")
 }
 
+//------------------------------------------------------------------------------
+// JSON Api
+//------------------------------------------------------------------------------
+
 // GET /api/v1/contacts
 func get_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
@@ -638,7 +653,6 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 		Errors: make(map[string]string),
 	}
 
-	// TODO: verify fields are valid
 	email_error := validate_email(-1, c.Email)
 	if email_error != "" {
 		// We must check this in order to keep the map length to zero when
@@ -737,7 +751,6 @@ func put_contact_handler(w http.ResponseWriter, r *http.Request) {
 		Errors: make(map[string]string),
 	}
 
-	// TODO: verify fields are valid
 	email_error := validate_email(-1, c.Email)
 	if email_error != "" {
 		c.Errors["email"] = email_error
