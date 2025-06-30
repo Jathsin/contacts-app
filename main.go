@@ -416,7 +416,6 @@ func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 		contact.Phone = c.Phone
 		contact.Errors = c.Errors
 
-		// TODO: show message to the user
 		log.Info("Contact edited successfully")
 		// Inform user
 		err = app.Templates.Render(w, "sucess-edit", c)
@@ -426,7 +425,6 @@ func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 			return
 		}
 		// w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(id_int))
-		w.WriteHeader(http.StatusFound)
 		return
 	}
 
@@ -457,10 +455,15 @@ func (app *App) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 			// Remove the contact at index i
 			contacts = append(contacts[:i], contacts[i+1:]...)
 
-			// TODO: show message to the user
 			log.Info("Contact deleted successfully")
 			if r.Header.Get("HX-Trigger") == "delete-btn" {
-				http.Redirect(w, r, "/contacts", http.StatusSeeOther)
+				err = app.Templates.Render(w, "sucess-delete", c)
+				if err != nil {
+					http.Error(w, "Error, could show success message", http.StatusInternalServerError)
+					log.Error("post_edit_contact_handler: error in app.Templates.Render(w, \"sucess-delete\", c)", "error", err)
+					return
+				}
+				// http.Redirect(w, r, "/contacts", http.StatusSeeOther)
 			}
 			// We do not want to render anything
 			return
@@ -622,6 +625,15 @@ func (app *App) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 // JSON Api
 //------------------------------------------------------------------------------
 
+type success_response struct {
+	Message string `json:"message"`
+}
+
+type error_response struct {
+	Message string            `json:"message"`
+	Errors  map[string]string `json:"errors"`
+}
+
 // GET /api/v1/contacts
 func get_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
@@ -670,31 +682,43 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 		c.Errors["phone"] = "Phone is required"
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+
 	if len(c.Errors) == 0 {
 		contacts = append(contacts, c)
-		// TODO: show message to the user
-		log.Info("Contact edited successfully")
+
+		// Inform about the request's success
+		log.Info("Contact added successfully")
+		s := success_response{
+			"Contact added successfully",
+		}
+		json_success_response, _ := json.Marshal(s)
+		_, err := w.Write(json_success_response)
+		if err != nil {
+			http.Error(w, "Could not show error on screen", http.StatusInternalServerError)
+			log.Error("post_contacts_handler: error in w.Write(json_success_response)", "error", err)
+			return
+		}
 		return
 
 	} else {
-		w.Header().Set("Content-Type", "application/json")
 
-		// Convert errors map to JSON and return
-		errorResponse := map[string]interface{}{
-			"message": "Could not add contact due to incorrect format",
-			"errors":  c.Errors,
+		// Inform about the response's failure
+		e := error_response{
+			"Could not add contact due to incorrect format",
+			c.Errors,
 		}
 
-		jsonData, _ := json.Marshal(errorResponse)
+		json_error_response, _ := json.Marshal(e)
 		w.WriteHeader(http.StatusBadRequest)
-		_, err := w.Write(jsonData)
+		_, err := w.Write(json_error_response)
 		if err != nil {
 			http.Error(w, "Could not show error on screen", http.StatusBadRequest)
-			log.Error("post_contacts_handler: error in w.Write(jsonData)", "error", err)
+			log.Error("post_contacts_handler: error in w.Write(json_error_response)", "error", err)
 			return
 		}
 
-		log.Error("post_contacts_handler: wrong contact format: ", "errors", jsonData)
+		log.Error("post_contacts_handler: wrong contact format: ", "errors", json_error_response)
 	}
 
 }
@@ -787,26 +811,40 @@ func put_contact_handler(w http.ResponseWriter, r *http.Request) {
 		contact.Phone = c.Phone
 		contact.Errors = c.Errors
 
-		// TODO: show message to the user
+		// Inform about the request's success
 		log.Info("Contact edited successfully")
+
+		s := success_response{
+			"Contact edited successfully",
+		}
+		json_success_response, _ := json.Marshal(s)
+		w.WriteHeader(http.StatusBadRequest)
+		_, err = w.Write(json_success_response)
+		if err != nil {
+			http.Error(w, "Could not show error on screen", http.StatusInternalServerError)
+			log.Error("put_contacts_handler: error in w.Write(json_success_response)", "error", err)
+			return
+		}
 		return
 
 	} else {
-		// Convert errors map to JSON and return
-		errorResponse := map[string]interface{}{
-			"message": "Could not edit contact due to incorrect format",
-			"errors":  c.Errors,
+
+		// Inform about the response's failure
+		e := error_response{
+			"Could not edit contact due to incorrect format",
+			c.Errors,
 		}
-		jsonData, _ := json.Marshal(errorResponse)
+
+		json_error_response, _ := json.Marshal(e)
 		w.WriteHeader(http.StatusBadRequest)
-		_, err := w.Write(jsonData)
+		_, err := w.Write(json_error_response)
 		if err != nil {
 			http.Error(w, "Could not show error on screen", http.StatusBadRequest)
-			log.Error("put_contact_handler: error in w.Write(jsonData)", "error", err)
+			log.Error("put_contact_handler: error in w.Write(json_error_response)", "error", err)
 			return
 		}
 
-		log.Error("put_contact_handler: wrong contact format: ", "errors", jsonData)
+		log.Error("put_contact_handler: wrong contact format: ", "errors", json_error_response)
 	}
 }
 
@@ -828,10 +866,36 @@ func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 			// Remove the contact at index i
 			contacts = append(contacts[:i], contacts[i+1:]...)
 
-			// TODO: show message to the user
+			// Inform the user of the request's success
 			log.Info("Contact deleted succesfully")
+			s := success_response{
+				"Contact deleted succesfully",
+			}
+			json_success_response, _ := json.Marshal(s)
+			w.WriteHeader(http.StatusBadRequest)
+			_, err := w.Write(json_success_response)
+			if err != nil {
+				http.Error(w, "Could not show error on screen", http.StatusBadRequest)
+				log.Error("delete_contact_handler: error in w.Write(json_success_response)", "error", err)
+				return
+			}
 			return
 		}
+	}
+
+	// Inform about the response's failure
+	e := error_response{
+		"Could not delete contact",
+		nil,
+	}
+
+	json_error_response, _ := json.Marshal(e)
+	w.WriteHeader(http.StatusBadRequest)
+	_, err = w.Write(json_error_response)
+	if err != nil {
+		http.Error(w, "Could not show error on screen", http.StatusInternalServerError)
+		log.Error("delete_contact_handler: error in w.Write(jsonData)", "error", err)
+		return
 	}
 
 	http.Error(w, "Error deleting contact", http.StatusInternalServerError)
