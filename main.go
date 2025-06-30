@@ -173,7 +173,7 @@ func (app *App) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		err := app.Templates.Render(w, "index", PageData{get_contact_list(page), "", page, myArchiver})
 		if err != nil {
 			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
-			log.Error("contact_query_handler: error in app.Templates.Render()", "error", err)
+			log.Error("contact_query_handler: error in app.Templates.Render() default", "error", err)
 			return
 		}
 		return
@@ -231,7 +231,7 @@ func (app *App) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 		}
 		if err != nil {
 			http.Error(w, "Error providing contact information", http.StatusInternalServerError)
-			log.Error("contact_id_handler: error in app.Templates.Render()", "error", err)
+			log.Error("contact_id_handler: error in app.Templates.Render() default", "error", err)
 			return
 		}
 
@@ -280,8 +280,6 @@ func (app *App) get_add_contact_handler(w http.ResponseWriter, r *http.Request) 
 // POST /contacts/new
 func (app *App) post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "text/html")
-
 	// Get form values
 	c := Contact{
 		ID:     contacts[len(contacts)-1].ID + 1,
@@ -308,20 +306,21 @@ func (app *App) post_add_contact_handler(w http.ResponseWriter, r *http.Request)
 		c.Errors["phone"] = "Phone is required"
 	}
 
+	w.Header().Set("Content-Type", "text/html")
 	if len(c.Errors) == 0 {
 		// Add contact to contacts
 		contacts = append(contacts, c)
 
-		// TODO: show message to the user
-		// 		document.body.addEventListener('htmx:beforeSwap', evt => { <1>
-		//   if (evt.detail.xhr.status === 404) { <2>
-		//     showNotFoundError();
-		//   }
-		// });
+		log.Info("Contact added successfully")
 
-		log.Info("Contact successfully added")
-		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(c.ID))
-		w.WriteHeader(http.StatusOK)
+		// Inform user
+		err := app.Templates.Render(w, "sucess-new", c)
+		if err != nil {
+			http.Error(w, "Error, could show success message", http.StatusInternalServerError)
+			log.Error("post_add_contact_handler: error in app.Templates.Render(w, \"sucess-new\", c)", "error", err)
+			return
+		}
+		// w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(c.ID))
 		return
 	}
 
@@ -329,7 +328,7 @@ func (app *App) post_add_contact_handler(w http.ResponseWriter, r *http.Request)
 	err := app.Templates.Render(w, "new", c)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
-		log.Error("add_contact_post_handler: error in app.Templates.Render()", "error", err)
+		log.Error("post_add_contact_handler: error in app.Templates.Render(w, \"new\", c)", "error", err)
 		return
 	}
 }
@@ -365,8 +364,6 @@ func (app *App) get_edit_contact_handler(w http.ResponseWriter, r *http.Request)
 
 // POST /contacts/{id}/edit
 func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "text/html")
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -408,7 +405,7 @@ func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 		contact, err := find_contact(id_int)
 		if err != nil {
 			http.Error(w, "Error, contact not found", http.StatusBadRequest)
-			log.Error("edit_contact_post_handler: error in find_contact", "error", err)
+			log.Error("post_edit_contact_handler: error in find_contact", "error", err)
 			return
 		}
 
@@ -421,15 +418,23 @@ func (app *App) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 
 		// TODO: show message to the user
 		log.Info("Contact edited successfully")
-		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(id_int))
+		// Inform user
+		err = app.Templates.Render(w, "sucess-edit", c)
+		if err != nil {
+			http.Error(w, "Error, could show success message", http.StatusInternalServerError)
+			log.Error("post_edit_contact_handler: error in app.Templates.Render(w, \"sucess-edit\", c)", "error", err)
+			return
+		}
+		// w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(id_int))
 		w.WriteHeader(http.StatusFound)
 		return
 	}
 
+	w.Header().Set("Content-Type", "text/html")
 	err = app.Templates.Render(w, "edit", c)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
-		log.Error("edit_contact_post_handler: error in app.Templates.Render()", "error", err)
+		log.Error("post_edit_contact_handler: error in app.Templates.Render(w, \"edit\", c)", "error", err)
 		return
 	}
 }
@@ -453,7 +458,7 @@ func (app *App) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 			contacts = append(contacts[:i], contacts[i+1:]...)
 
 			// TODO: show message to the user
-			log.Info("Contact deleted succesfully")
+			log.Info("Contact deleted successfully")
 			if r.Header.Get("HX-Trigger") == "delete-btn" {
 				http.Redirect(w, r, "/contacts", http.StatusSeeOther)
 			}
@@ -464,7 +469,7 @@ func (app *App) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	// We cannot delete contact, which should always be possible form this endpoint
 	http.Error(w, "Error deleting contact", http.StatusInternalServerError)
-	log.Error("delete_contact: contact not found")
+	log.Error("delete_contact_handler: contact not found")
 
 }
 
@@ -482,8 +487,6 @@ func (app *App) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /contacts
 func (app *App) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "text/html")
 
 	// Parse ids
 	err := r.ParseForm()
@@ -503,8 +506,8 @@ func (app *App) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.
 	for i, id_string := range ids {
 		id_int, err := strconv.Atoi(id_string)
 		if err != nil {
-			http.Error(w, "Error, id nº "+strconv.Itoa(i)+"must be an integer", http.StatusBadRequest)
-			log.Error("delete_contact_handler: error in strconv.Atoi(id)", "error", err)
+			http.Error(w, "Error, id nº "+strconv.Itoa(i)+", id must be an integer", http.StatusBadRequest)
+			log.Error("delete_multiple_contacts_handler: error in strconv.Atoi(id)", "error", err)
 			return
 		}
 		ids_int = append(ids_int, id_int)
@@ -520,6 +523,7 @@ func (app *App) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.
 		}
 	}
 
+	w.Header().Set("Content-Type", "text/html")
 	err = app.Templates.Render(w, "index", PageData{get_contact_list(1), "", 1, myArchiver})
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
@@ -530,8 +534,6 @@ func (app *App) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.
 
 // /contacts/{id}/{email}
 func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "text/html")
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -552,6 +554,7 @@ func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	email := r.URL.Query().Get("email")
 	c.Errors["email"] = validate_email(id_int, email)
 
+	w.Header().Set("Content-Type", "text/html")
 	err = app.Templates.Render(w, "error_email", c)
 	if err != nil {
 		http.Error(w, "Error, could not render page", http.StatusInternalServerError)
@@ -562,8 +565,6 @@ func (app *App) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 
 // /contacts/archive
 func (app *App) post_archive_handler(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "text/html")
 
 	// Concurrent processing
 	var wg sync.WaitGroup
@@ -576,6 +577,7 @@ func (app *App) post_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 	time.Sleep(500 * time.Millisecond)
 
+	w.Header().Set("Content-Type", "text/html")
 	err := app.Templates.Render(w, "archive_ui", myArchiver)
 	if err != nil {
 		http.Error(w, "Error processing archive", http.StatusInternalServerError)
@@ -623,13 +625,14 @@ func (app *App) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 // GET /api/v1/contacts
 func get_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "application/json")
 	jsonData, err := json.Marshal(contacts)
 	if err != nil {
 		http.Error(w, "Error converting contacts into JSON", http.StatusInternalServerError)
 		log.Error("get_contacts_handler: error in json.Marshal(contacts)", "error", err)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(jsonData)
 	if err != nil {
 		http.Error(w, "Error writing response", http.StatusInternalServerError)
@@ -640,8 +643,6 @@ func get_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 // POST /api/v1/contacts
 func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "application/json")
 
 	// Get form values
 	c := Contact{
@@ -676,11 +677,14 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 		return
 
 	} else {
+		w.Header().Set("Content-Type", "application/json")
+
 		// Convert errors map to JSON and return
 		errorResponse := map[string]interface{}{
 			"message": "Could not add contact due to incorrect format",
 			"errors":  c.Errors,
 		}
+
 		jsonData, _ := json.Marshal(errorResponse)
 		w.WriteHeader(http.StatusBadRequest)
 		_, err := w.Write(jsonData)
@@ -697,8 +701,6 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 // /GET /api/v1/contacts/{id}
 func get_contact_handler(w http.ResponseWriter, r *http.Request) {
-
-	w.Header().Set("Content-Type", "application/json")
 
 	id_string := r.PathValue("id")
 
@@ -719,6 +721,8 @@ func get_contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Show contact information
+	w.Header().Set("Content-Type", "application/json")
+
 	jsonData, _ := json.Marshal(c)
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(jsonData)
@@ -835,8 +839,8 @@ func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // -----------------------------------------------------------------------------
-
 // AUXILIARY FUNCTIONS
+
 func logging(f http.Handler) http.Handler {
 
 	return (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

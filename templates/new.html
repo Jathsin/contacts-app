@@ -39,3 +39,15 @@
     <a href="/contacts">Back</a>
 </p>
 {{ end }}
+
+
+{{ block "sucess-new" . }}
+<div id="success-message" class="sucess">
+    Contact added successfully! Redirecting...
+</div>
+<script>
+    setTimeout(() => {
+        window.location.href = '/contacts';
+    }, 1000);
+</script>
+{{ end }}

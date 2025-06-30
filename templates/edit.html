@@ -40,7 +40,7 @@
 
 
 <button id="delete-btn" hx-delete="/contacts/{{ .ID }}" hx-target="body" hx-push-url="true"
-    hx-confirm="Are you sure you want to kill this contact?">Delete Contact</button>
+    hx-confirm="Are you sure you want to delete this contact?">Delete Contact</button>
 
 <p>
     <a href="/contacts/">Back</a>
@@ -50,3 +50,26 @@
 {{ block "error_email" . }}
 <span class="error">{{ index .Errors "email" }}</span>
 {{end}}
+
+
+{{ block "sucess-edit" . }}
+<div id="success-message" class="sucess">
+    Contact edited successfully! Redirecting...
+</div>
+<script>
+    setTimeout(() => {
+        window.location.href = '/contacts/{{ .ID }}';
+    }, 1000);
+</script>
+{{ end }}
+
+{{ block "sucess-delete" . }}
+<div id="success-message" class="sucess">
+    Contact deleted successfully! Redirecting...
+</div>
+<script>
+    setTimeout(() => {
+        window.location.href = '/contacts/{{ .ID }}';
+    }, 1000);
+</script>
+{{ end }}
