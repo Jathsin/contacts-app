@@ -479,6 +479,7 @@ func (app *App) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 // /contacts/count
 func (app *App) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
+	time.Sleep(1 * time.Second)
 	count := len(contacts)
 	_, err := w.Write([]byte(strconv.Itoa(count) + " total Contacts"))
 	if err != nil {
