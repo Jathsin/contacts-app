@@ -12,6 +12,12 @@
 table {
     width: 100%;
     margin-bottom: 12px;
+
+    border-collapse: collapse;
+    border-color: currentColor;
+    text-indent: 0;
+    font-variant-numeric: tabular-nums;
+    font: inherit
 }
 
 .error {
