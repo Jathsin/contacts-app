@@ -67,7 +67,7 @@
                 contacts selected
                 <!-- <button type="button" class="bad bg color border btn-destructive ml-[20px]" @click="confirm(`Delete ${selected.length} contacts?`) &&
             htmx.ajax('DELETE', '/contacts', { source: $root, target: document.body })">Delete</button> -->
-                <button type="button" @click="selected=[]" class="btn ml-[20px]">Cancel</button>
+                <button type="button" @click="selected=[]" class="btn-secondary ml-[20px]">Cancel</button>
             </div>
         </div>
     </template>
@@ -111,18 +111,8 @@
             </li>
         </ul>
     </nav>
-    <button class="btn-destructive mt-[20px] mx-auto block" :disabled="selected.length === 0" @click.prevent="
-    if (selected.length > 0) {
-      if (confirm('Want to delete?')) {
-        $el.setAttribute('hx-delete', '/contacts');
-        $el.setAttribute('hx-target', 'body');
-        $el.setAttribute('hx-swap', 'outerHTML swap:1s');
-        $el.click();
-      }
-    } else {
-      alert('Please select at least one contact to delete.');
-    }
-    ">
+    <button class="btn-destructive mt-[20px] mx-auto block" :disabled="selected.length === 0" hx-delete=" /contacts"
+        hx-confirm="Want to delete?" hx-swap="outerHTML swap:1s" hx-target="body">
         Delete Selected Contacts
     </button>
 </form>

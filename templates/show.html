@@ -5,15 +5,20 @@
 {{ end }}
 
 {{ block "contact" . }}
-<h1>{{ .First }} {{ .Last }}</h1>
-
 <div>
-    <div>Phone: {{ .Phone }}</div>
-    <div>Email: {{ .Email }}</div>
-</div>
+    <div> <img class="size-30 shrink-0 object-cover rounded-full" alt="@hunvreus" src="https://github.com/hunvreus.png">
+    </div>
+    <div class="mt-[20px]">
+        <h1 class="text-[30] font-bold">{{ .First }} {{ .Last }}</h1>
+    </div>
+    <div class="mt-[20px]">
+        <div class="text-[15px]"><b>Phone:</b> {{ .Phone }}</div>
+        <div class="text-[15px]"><b>Email:</b> {{ .Email }}</div>
+    </div>
 
-<p>
-    <a href="/contacts" class="btn-outline">Back</a>
-    <a href="/contacts/{{ .ID }}/edit" class="btn-outline">Edit</a>
-</p>
+    <div class="mt-[20px]">
+        <a href="/contacts" class="btn-outline">Back</a>
+        <a href="/contacts/{{ .ID }}/edit" class="btn-outline">Edit</a>
+    </div>
+</div>
 {{ end }}

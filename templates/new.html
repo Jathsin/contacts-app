@@ -6,44 +6,59 @@
 
 {{ block "add-form" . }}
 
-<form action="/contacts/new" method="post">
+<form class="form grid gap-6" action="/contacts/new" method="post">
     <fieldset>
-        <legend>Contact Values</legend>
+        <legend class="text-[30] font-bold mb-[10px]">Contact Values</legend>
         <div class="table rows">
             <p>
-                <label for="email">Email</label>
-                <input name="email" id="email" type="email" placeholder="Email" value="{{ .Email }}">
+                <label for="email" class="mb-[10px]">Email</label>
+            <div class="flex flex-row gap-6 mb-[20px]">
+                <input class="w-80" name="email" id="email" type="email" placeholder="Email" value="{{ .Email }}">
                 <span class="error">{{ index .Errors "email"}}</span>
+            </div>
             </p>
             <p>
-                <label for="first_name">First Name</label>
-                <input name="first_name" id="first_name" type="text" placeholder="First Name" value="{{ .First }}">
+                <label for="first_name" class="mb-[10px]">First Name</label>
+            <div class="flex flex-row gap-6 mb-[20px]">
+                <input class="w-80" name="first_name" id="first_name" type="text" placeholder="First Name"
+                    value="{{ .First }}">
                 <span class="error">{{ index .Errors "first" }}</span>
+            </div>
             </p>
             <p>
-                <label for="last_name">Last Name</label>
-                <input name="last_name" id="last_name" type="text" placeholder="Last Name" value="{{ .Last }}">
+                <label for="last_name" class="mb-[10px]">Last Name</label>
+            <div class="flex flex-row gap-6 mb-[20px]">
+                <input class="w-80" name="last_name" id="last_name" type="text" placeholder="Last Name"
+                    value="{{ .Last }}">
                 <span class="error">{{ index .Errors "last" }}</span>
+            </div>
             </p>
             <p>
-                <label for="phone">Phone</label>
-                <input name="phone" id="phone" type="text" placeholder="Phone" value="{{ .Phone }}">
+                <label for="phone" class="mb-[10px]">Phone</label>
+            <div class="flex flex-row gap-6 mb-[20px]">
+                <input class="w-80" name="phone" id="phone" type="text" placeholder="Phone" value="{{ .Phone }}">
                 <span class="error">{{ index .Errors "phone" }}</span>
+            </div>
             </p>
         </div>
-        <button>Save</button>
+        <button class="btn-outline" hx-post="/contacts/new" hx-target="body" hx-swap="outerHTML">Save</button>
     </fieldset>
 </form>
-
-<p>
-    <a href="/contacts">Back</a>
+<p class=" mt-[10px]">
+    <a href="/contacts" class="btn">Back</a>
 </p>
 {{ end }}
 
 
 {{ block "sucess-new" . }}
-<div id="success-message" class="sucess">
-    Contact added successfully! Redirecting...
+<div class="alert">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="m9 12 2 2 4-4" />
+    </svg>
+    <h2>Contact added successfully</h2>
+    <section>This is an alert with icon, title and description.</section>
 </div>
 <script>
     setTimeout(() => {
