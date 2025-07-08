@@ -153,7 +153,7 @@ type PageData struct {
 	Archiver archiver.Archiver
 }
 
-// /contacts?q={id} and /contacts/{id}
+// /contacts?q={id}
 func (app *App) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
