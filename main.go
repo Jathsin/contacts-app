@@ -13,6 +13,7 @@ import (
 	"sync"
 	"time"
 
+	et "braces.dev/errtrace"
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
 )
@@ -22,6 +23,14 @@ var log *slog.Logger
 var contacts []Contact
 var contacts_data []byte
 var myArchiver archiver.Archiver
+
+func templ_error(r *http.Request, err error) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Error(et.FormatString(et.Wrap(err)))
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+}
 
 func main() {
 
@@ -126,8 +135,6 @@ type PageData struct {
 // /contacts?q={id}
 func contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Content-Type", "text/html")
-
 	q := r.URL.Query().Get("q")
 
 	if q == "" {
@@ -140,14 +147,8 @@ func contact_query_handler(w http.ResponseWriter, r *http.Request) {
 			page = 1
 		}
 		contact_list := get_contact_list(page)
+		templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 
-		templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver)))).ServeHTTP(w, r)
-		// TODO: manage errors
-		// if err != nil {
-		// 	http.Error(w, "Error providing contact information", http.StatusInternalServerError)
-		// 	log.Error("contact_query_handler: error in app.Templates.Render() default", "error", err)
-		// 	return
-		// }
 		return
 	}
 
@@ -160,14 +161,7 @@ func contact_query_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Show contact information
-	templ.Handler(index(contact_results, q, 0, myArchiver)).ServeHTTP(w, r)
-
-	// err = app.Templates.Render(w, "index", data)
-	// if err != nil {
-	// 	http.Error(w, "Error finding contact", http.StatusBadRequest)
-	// 	log.Error("contact_query_handler: error in app.Templates.Render()", "error", err)
-	// 	return
-	// }
+	templ.Handler(index(contact_results, q, 0, myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // /contacts/{id}
@@ -189,16 +183,10 @@ func contact_id_handler(w http.ResponseWriter, r *http.Request) {
 		// Show contact information depending on trigger
 		// var err error
 		if r.Header.Get("HX-Trigger") == "search" {
-			templ.Handler(rows(get_contact_list(page)))
+			templ.Handler(rows(get_contact_list(page)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		} else {
-			templ.Handler(index(get_contact_list(page), "", page, myArchiver)).ServeHTTP(w, r)
+			templ.Handler(index(get_contact_list(page), "", page, myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		}
-
-		// if err != nil {
-		// 	http.Error(w, "Error providing contact information", http.StatusInternalServerError)
-		// 	log.Error("contact_id_handler: error in app.Templates.Render() default", "error", err)
-		// 	return
-		// }
 
 		return
 	}
@@ -220,7 +208,7 @@ func contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Show contact information
-	templ.Handler(layout(show(*c))).ServeHTTP(w, r)
+	templ.Handler(layout(show(*c)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 
 	// s := show(*c)
 	// err = s.Render(context.Background(), w)
@@ -238,7 +226,7 @@ func get_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
 	var c = Contact{}
-	templ.Handler(new_contact(c)).ServeHTTP(w, r)
+	templ.Handler(new_contact(c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	// err := app.Templates.Render(w, "new", c)
 	// if err != nil {
 	// 	http.Error(w, "Error, could not render page", http.StatusInternalServerError)
@@ -285,25 +273,14 @@ func post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 		log.Info("Contact added successfully")
 
 		// Inform user
-		templ.Handler(success_new()).ServeHTTP(w, r)
+		templ.Handler(success_new(), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 
-		// err := app.Templates.Render(w, "sucess-new", c)
-		// if err != nil {
-		// 	http.Error(w, "Error, could show success message", http.StatusInternalServerError)
-		// 	log.Error("post_add_contact_handler: error in app.Templates.Render(w, \"sucess-new\", c)", "error", err)
-		// 	return
-		// }
-		// w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(c.ID))
 		return
 	}
 
 	// We cannot add contact
-	templ.Handler(new_contact(c)).ServeHTTP(w, r)
-	// if err != nil {
-	// 	http.Error(w, "Error, could not render page", http.StatusInternalServerError)
-	// 	log.Error("post_add_contact_handler: error in app.Templates.Render(w, \"new\", c)", "error", err)
-	// 	return
-	// }
+	templ.Handler(new_contact(c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+
 }
 
 // GET /contacts/{id}/edit
@@ -327,13 +304,7 @@ func get_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templ.Handler(edit_contact(*c)).ServeHTTP(w, r)
-	// err = app.Templates.Render(w, "edit", c)
-	// if err != nil {
-	// 	http.Error(w, "Error, could not render page", http.StatusInternalServerError)
-	// 	log.Error("edit_contact_get_handler: error in app.Templates.Render()", "error", err)
-	// 	return
-	// }
+	templ.Handler(edit_contact(*c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // POST /contacts/{id}/edit
@@ -391,26 +362,13 @@ func post_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 		contact.Errors = c.Errors
 
 		log.Info("Contact edited successfully")
-		// Inform user
 
 		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(id_int))
-		// err = app.Templates.Render(w, "sucess-edit", c)
-		// if err != nil {
-		// 	http.Error(w, "Error, could show success message", http.StatusInternalServerError)
-		// 	log.Error("post_edit_contact_handler: error in app.Templates.Render(w, \"sucess-edit\", c)", "error", err)
-		// 	return
-		// }
 		return
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	templ.Handler(edit_contact(c)).ServeHTTP(w, r)
-	// err = app.Templates.Render(w, "edit", c)
-	// if err != nil {
-	// 	http.Error(w, "Error, could not render page", http.StatusInternalServerError)
-	// 	log.Error("post_edit_contact_handler: error in app.Templates.Render(w, \"edit\", c)", "error", err)
-	// 	return
-	// }
+	templ.Handler(edit_contact(c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // DELETE /contacts/{id}/edit
@@ -433,14 +391,10 @@ func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 			log.Info("Contact deleted successfully")
 			if r.Header.Get("HX-Trigger") == "delete-btn" {
-				templ.Handler(success_delete()).ServeHTTP(w, r)
-				// if err != nil {
-				// 	http.Error(w, "Error, could show success message", http.StatusInternalServerError)
-				// 	log.Error("post_edit_contact_handler: error in app.Templates.Render(w, \"sucess-delete\", c)", "error", err)
-				// 	return
-				// }
+				templ.Handler(success_delete(), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 				http.Redirect(w, r, "/contacts", http.StatusSeeOther)
 			}
+
 			// We do not want to render anything
 			return
 		}
@@ -504,13 +458,7 @@ func delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	templ.Handler(index(get_contact_list(1), "", 1, myArchiver)).ServeHTTP(w, r)
-	// err = app.Templates.Render(w, "index", PageData{get_contact_list(1), "", 1, myArchiver})
-	// if err != nil {
-	// 	http.Error(w, "Error, could not render page", http.StatusInternalServerError)
-	// 	log.Error("delete_multiple_contacts_handler: error in app.Templates.Render()", "error", err)
-	// 	return
-	// }
+	templ.Handler(index(get_contact_list(1), "", 1, myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // /contacts/{id}/{email}
@@ -537,13 +485,7 @@ func validate_email_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 
-	templ.Handler(error_email(c.Errors["email"])).ServeHTTP(w, r)
-	// err = app.Templates.Render(w, "error_email", c)
-	// if err != nil {
-	// 	http.Error(w, "Error, could not render page", http.StatusInternalServerError)
-	// 	log.Error("validate_email_handler: error in app.Templates.Render()", "error", err)
-	// 	return
-	// }
+	templ.Handler(error_email(c.Errors["email"]), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // /contacts/archive
@@ -561,39 +503,20 @@ func post_archive_handler(w http.ResponseWriter, r *http.Request) {
 	time.Sleep(500 * time.Millisecond)
 
 	w.Header().Set("Content-Type", "text/html")
-	templ.Handler(archive_ui(myArchiver)).ServeHTTP(w, r)
-	// err := app.Templates.Render(w, "archive_ui", myArchiver)
-	// if err != nil {
-	// 	http.Error(w, "Error processing archive", http.StatusInternalServerError)
-	// 	log.Error("archive_post_handler: error in app.Templates.Render()", "error", err)
-	// 	return
-	// }
+	templ.Handler(archive_ui(myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // /contacts/archive
 func get_archive_handler(w http.ResponseWriter, r *http.Request) {
 
-	templ.Handler(archive_ui(myArchiver)).ServeHTTP(w, r)
-
-	// err := app.Templates.Render(w, "archive_ui", myArchiver)
-	// if err != nil {
-	// 	http.Error(w, "Error processing archive", http.StatusInternalServerError)
-	// 	log.Error("archive_get_handler: error in app.Templates.Render()", "error", err)
-	// 	return
-	// }
+	templ.Handler(archive_ui(myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // DELETE /contacts/archive
 func delete_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 	myArchiver.Reset()
-	templ.Handler(archive_ui(myArchiver)).ServeHTTP(w, r)
-	// err := app.Templates.Render(w, "archive_ui", myArchiver)
-	// if err != nil {
-	// 	http.Error(w, "Error processing archive", http.StatusInternalServerError)
-	// 	log.Error("archive_delete_handler: error in app.Templates.Render()", "error", err)
-	// 	return
-	// }
+	templ.Handler(archive_ui(myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // /contacts/archive/file
