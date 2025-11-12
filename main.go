@@ -436,9 +436,6 @@ func delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	}
 	ids := r.Form["selected_contact_ids"]
 
-	fmt.Print("hellou")
-	fmt.Print(ids)
-
 	var ids_int []int
 
 	// Parse array

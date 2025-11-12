@@ -96,3 +96,13 @@ function overflowMenu(subtree = document) {
 document.addEventListener("DOMContentLoaded", () => overflowMenu(document));
 document.addEventListener("htmx:load", e => overflowMenu(e.target));
 document.addEventListener("htmx:afterSwap", e => overflowMenu(e.target));
+
+
+// sweetalert2: modal dialogue code
+function sweetConfirm(elt, config) {
+    Swal.fire(config).then((result) => {
+        if (result.isConfirmed) {
+            elt.dispatchEvent(new Event('confirmed'));
+        }
+    })
+}

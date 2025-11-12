@@ -42,6 +42,7 @@ templ layout(c templ.Component) {
 			<script defer src="https://unpkg.com/alpinejs"></script>
 			<script src="//unpkg.com/hyperscript.org"></script>
 			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.2.8/dist/basecoat.cdn.min.css"/>
 			<script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.2.8/dist/js/all.min.js" defer></script>
 		</head>
@@ -205,10 +206,16 @@ templ contact_table(page int, contact_list []Contact) {
 			</ul>
 		</nav>
 		<button
+			type="button"
 			class="btn-destructive mt-[20px] mx-auto block"
 			:disabled="selected.length === 0"
 			hx-delete=" /contacts"
-			hx-confirm="Want to delete?"
+			hx-trigger="confirmed"
+			@click="sweetConfirm($el, { 
+				title: 'Delete these contacts?', 
+				showCancelButton: true,
+				confirmButtonText: 'Delete'
+			})"
 			hx-swap="outerHTML swap:1s"
 			hx-target="body"
 		>
