@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"hypermedia/archiver"
 	"log/slog"
@@ -13,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	et "braces.dev/errtrace"
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
 )
@@ -26,7 +26,8 @@ var myArchiver archiver.Archiver
 
 func templ_error(r *http.Request, err error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Error(et.FormatString(et.Wrap(err)))
+		// TODO: checkpr wrap
+		log.Error("error", "error", err)
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(http.StatusInternalServerError)
 	})
@@ -130,6 +131,10 @@ type PageData struct {
 	Query    string
 	Page     int
 	Archiver archiver.Archiver
+}
+
+func ForceError() (string, error) {
+	return "", errors.New("error forzado desde helpers")
 }
 
 // /contacts?q={id}
