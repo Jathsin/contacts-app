@@ -1,58 +1,65 @@
 function overflowMenu(subtree = document) {
     // Find every overflow menu root within the provided subtree
-    subtree.querySelectorAll("[data-overflow-menu]").forEach(menuRoot => {
+    subtree.querySelectorAll("[data-rs-overflow-menu]").forEach(menuRoot => {
         // Avoid rebinding listeners on elements we've already initialized
         if (menuRoot.__overflowBound) return;
         menuRoot.__overflowBound = true;
 
-        const button = menuRoot.querySelector("[aria-haspopup]") || menuRoot.querySelector("button");
-        const menu = menuRoot.querySelector("[role=menu]");
-        if (!button || !menu) {
+        const button =
+            menuRoot.querySelector("[aria-haspopup]") ||
+            menuRoot.querySelector("button");
+
+        const popover = menuRoot.querySelector("[data-popover]");
+        const menu = popover
+            ? popover.querySelector("[role=menu]")
+            : menuRoot.querySelector("[role=menu]");
+
+        if (!button || !popover || !menu) {
             // Nothing to wire up if essential parts are missing
             return;
         }
 
         const items = Array.from(menu.querySelectorAll("[role=menuitem]"));
-        // Ensure menu is hidden initially if not set by markup
-        if (menu.hidden === undefined) {
-            // some elements may not support .hidden; enforce via attribute
-            menu.setAttribute("hidden", "");
-        } else {
-            menu.hidden = true;
-        }
 
-        // make items non tabbable for roving tabindex pattern
+        // Make items non tabbable initially for roving tabindex pattern
         items.forEach(item => item.setAttribute("tabindex", -1));
 
-        const isOpen = () => menu.getAttribute("hidden") === null ? true : !menu.hidden ? true : false;
+        const isOpen = () =>
+            popover.getAttribute("aria-hidden") === "false" &&
+            !popover.hasAttribute("hidden");
 
         function openMenu() {
-            // Show menu using both property and attribute to be resilient
-            menu.hidden = false;
-            menu.removeAttribute("hidden");
+            popover.removeAttribute("hidden");
+            popover.setAttribute("aria-hidden", "false");
             button.setAttribute("aria-expanded", "true");
             (items[0] || menu).focus();
         }
 
         function closeMenu() {
-            menu.hidden = true;
-            menu.setAttribute("hidden", "");
+            popover.setAttribute("hidden", "");
+            popover.setAttribute("aria-hidden", "true");
             button.setAttribute("aria-expanded", "false");
         }
 
         function toggleMenu(open = !isOpen()) {
-            if (open) openMenu(); else closeMenu();
+            if (open) {
+                openMenu();
+            } else {
+                closeMenu();
+            }
         }
 
         // Initialize to closed
         closeMenu();
 
         // Button click toggles
-        button.addEventListener("click", () => toggleMenu());
+        button.addEventListener("click", (e) => {
+            e.stopPropagation();
+            toggleMenu();
+        });
 
         // Close when focus leaves the whole menu root
         menuRoot.addEventListener("focusout", (e) => {
-            // relatedTarget is the element gaining focus (can be null)
             const next = e.relatedTarget;
             if (!next || !menuRoot.contains(next)) {
                 closeMenu();
@@ -65,7 +72,9 @@ function overflowMenu(subtree = document) {
                 document.removeEventListener("click", clickAway);
                 return;
             }
-            if (!menuRoot.contains(event.target)) closeMenu();
+            if (!menuRoot.contains(event.target)) {
+                closeMenu();
+            }
         };
         document.addEventListener("click", clickAway);
 
@@ -92,10 +101,21 @@ function overflowMenu(subtree = document) {
     });
 }
 
-// Run on initial DOM ready and whenever HTMX swaps in content
-document.addEventListener("DOMContentLoaded", () => overflowMenu(document));
-document.addEventListener("htmx:load", e => overflowMenu(e.target));
-document.addEventListener("htmx:afterSwap", e => overflowMenu(e.target));
+// Run on initial DOM ready
+// document.addEventListener("DOMContentLoaded", () => {
+//     overflowMenu(document);
+// });
+
+// When htmx loads new content, initialise menus inside that fragment
+document.addEventListener("htmx:load", (e) => {
+    overflowMenu(e.target);
+});
+
+// After any htmx request has fully settled (including hx-swap="outerHTML"),
+// rescan the real current document to catch newly replaced roots like <body>.
+// document.addEventListener("htmx:afterSettle", () => {
+//     overflowMenu(document);
+// });
 
 
 // sweetalert2: modal dialogue code
