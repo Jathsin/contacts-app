@@ -244,9 +244,17 @@ func get_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 // POST /contacts/new
 func post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
+	// Compute new id
+	max_id := 0
+	for _, c := range contacts {
+		if c.ID > max_id {
+			max_id = c.ID
+		}
+	}
+
 	// Get form values
 	c := Contact{
-		ID:     contacts[len(contacts)-1].ID + 1,
+		ID:     max_id + 1,
 		First:  r.FormValue("first_name"),
 		Last:   r.FormValue("last_name"),
 		Email:  r.FormValue("email"),
