@@ -137,6 +137,9 @@ func ForceError() (string, error) {
 	return "", errors.New("error forzado desde helpers")
 }
 
+var SUCCESS = "Contact added successfully"
+var DELETE = "Contact deleted successfully"
+
 // /contacts?q={id}
 func contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
@@ -154,9 +157,9 @@ func contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		contact_list := get_contact_list(page)
 
 		if r.Header.Get("HX-Request") == "true" {
-			templ.Handler(index(contact_list, "", page, myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+			templ.Handler(index(contact_list, "", page, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		} else {
-			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver, ""))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		}
 		return
 	}
@@ -170,7 +173,7 @@ func contact_query_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Show contact information
-	templ.Handler(index(contact_results, q, 0, myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	templ.Handler(index(contact_results, q, 0, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // /contacts/{id}
@@ -194,7 +197,7 @@ func contact_id_handler(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("HX-Trigger") == "search" {
 			templ.Handler(rows(get_contact_list(page)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		} else {
-			templ.Handler(index(get_contact_list(page), "", page, myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+			templ.Handler(index(get_contact_list(page), "", page, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		}
 
 		return
@@ -217,7 +220,11 @@ func contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Show contact information
-	templ.Handler(layout(show(*c)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	if r.Header.Get("HX-Request") == "true" {
+		templ.Handler(layout(show(*c)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	} else {
+		templ.Handler(layout(con_boton_tema(show(*c))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	}
 
 	// s := show(*c)
 	// err = s.Render(context.Background(), w)
@@ -295,7 +302,7 @@ func post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 		log.Info("Contact added successfully")
 
 		// Inform user
-		templ.Handler(success_new(), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(index(get_contact_list(1), "", 1, myArchiver, SUCCESS), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 
 		return
 	}
@@ -385,7 +392,7 @@ func post_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 		log.Info("Contact edited successfully")
 
-		w.Header().Set("HX-Redirect", "/contacts/"+strconv.Itoa(id_int))
+		templ.Handler(show(*contact), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		return
 	}
 
@@ -413,7 +420,7 @@ func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 			log.Info("Contact deleted successfully")
 			if r.Header.Get("HX-Trigger") == "delete-btn" {
-				templ.Handler(success_delete(), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+				templ.Handler(index(get_contact_list(1), "", 1, myArchiver, DELETE), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 				http.Redirect(w, r, "/contacts", http.StatusSeeOther)
 			}
 
@@ -425,7 +432,6 @@ func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 	// We cannot delete contact, which should always be possible form this endpoint
 	http.Error(w, "Error deleting contact", http.StatusInternalServerError)
 	log.Error("delete_contact_handler: contact not found")
-
 }
 
 // /contacts/count
@@ -477,7 +483,7 @@ func delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	templ.Handler(index(get_contact_list(1), "", 1, myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	templ.Handler(index(get_contact_list(1), "", 1, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // /contacts/{id}/{email}
@@ -542,9 +548,21 @@ func delete_archive_handler(w http.ResponseWriter, r *http.Request) {
 func archive_file_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Disposition", `attachment; filename="contacts.json"`)
+	w.Header().Set("Content-Type", "application/json")
 
-	// Serve the file
-	http.ServeFile(w, r, "contacts.json")
+	json_data, err := json.MarshalIndent(contacts, "", "  ")
+	if err != nil {
+		http.Error(w, "Error converting contacts into JSON", http.StatusInternalServerError)
+		log.Error("archive_file_handler: error in json.MarshalIndent(contacts)", "error", err)
+		return
+	}
+
+	_, err = w.Write(json_data)
+	if err != nil {
+		http.Error(w, "Error writing response", http.StatusInternalServerError)
+		log.Error("archive_file_handler: error in w.Write(json_data)", "error", err)
+		return
+	}
 }
 
 //------------------------------------------------------------------------------

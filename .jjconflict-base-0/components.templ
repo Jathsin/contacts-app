@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"hypermedia/archiver"
+	"strings"
 )
 
 templ layout(c templ.Component) {
@@ -73,7 +74,7 @@ templ con_boton_tema(contenido templ.Component) {
 	@contenido
 }
 
-templ index(contact_list []Contact, query string, page int, archive archiver.Archiver) {
+templ index(contact_list []Contact, query string, page int, archive archiver.Archiver, flash_message string) {
 	<main class="mx-auto max-w-[600px] mb-20">
 		<header class="text-center mb-[50px]">
 			<h1>
@@ -81,6 +82,19 @@ templ index(contact_list []Contact, query string, page int, archive archiver.Arc
 			</h1>
 			<sub-title>A Demo Contacts Application</sub-title>
 		</header>
+		// flash messages
+		if flash_message != "" {
+			<div
+				if strings.Contains(flash_message, "deleted") {
+					class="alert-destructive"
+				} else {
+					class="alert"
+				}
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle> <path d="m9 12 2 2 4-4"></path> </svg>
+				<h2>{ flash_message }</h2>
+			</div>
+		}
 		<p>
 			<button hx-get="/contacts/new" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn-outline my-[10px] mr-[10px]">Add Contact</button>
 			<span hx-get="/contacts/count" hx-trigger="revealed">
@@ -97,11 +111,11 @@ templ index(contact_list []Contact, query string, page int, archive archiver.Arc
 }
 
 templ archive_ui(archive archiver.Archiver) {
-	<div id="archive-ui" hx-target="this" hx-swap="outerHTML" class="mb-[15px]">
+	<div id="archive-ui" class="mb-[15px]">
 		if archive.Status == "Waiting" {
-			<button hx-post="/contacts/archive" class="btn-outline">Download Contact Archive</button>
+			<button hx-post="/contacts/archive" hx-target="this" hx-swap="outerHTML" class="btn-outline">Download Contact Archive</button>
 		} else if archive.Status == "Running" {
-			<div hx-get="/contacts/archive" hx-trigger="load delay:500ms">
+			<div hx-get="/contacts/archive" hx-target="this" hx-swap="outerHTML" hx-trigger="load delay:500ms">
 				Creating Archive...
 				<div class="progress">
 					<div
@@ -114,13 +128,13 @@ templ archive_ui(archive archiver.Archiver) {
 				</div>
 			</div>
 		} else if archive.Status == "Complete" {
-			<a hx-boost="false" href="/contacts/archive/file">
+			<a href="/contacts/archive/file">
 				<button class="btn-outline">Archive Ready! Click here to download. &downarrow;</button>
 			</a>
 			<!-- <a hx-boost="false" href="/contacts/archive/file" _="on load click() me">
             Archive Downloading! Click here if the download does not start.
         </a> -->
-			<button hx-delete="/contacts/archive" class="btn-outline">Clear Download</button>
+			<button hx-delete="/contacts/archive" hx-target="this" hx-swap="outerHTML" class="btn-outline">Clear Download</button>
 		}
 	</div>
 }
@@ -154,6 +168,16 @@ templ contact_table(page int, contact_list []Contact) {
 				<div class="flex flex-row gap-1 mb-[40px]">
 					<slot x-text="selected.length"></slot>
 					contacts selected
+					<button
+						type="button"
+						class="btn-destructive ml-[20px]"
+						@click="confirm(`Delete ${selected.length} contacts?`) &&
+						htmx.ajax('DELETE', '/contacts',
+						{ source: $root, target: document.querySelector('main'), swap: 'outerHTML'})"
+					>
+						Delete
+					</button>
+					<hr aria-orientation="vertical"/>
 					<button type="button" @click="selected=[]" class="btn-secondary ml-[20px]">Cancel</button>
 				</div>
 			</div>
@@ -300,7 +324,7 @@ templ show(c Contact) {
 
 templ new_contact(c Contact) {
 	<main class="py-10 flex flex-col items-center">
-		<form class="form grid gap-6" action="/contacts/new" method="post">
+		<form class="form grid gap-6" action="contacts/new" method="post" hx-post="/contacts/new" hx-target="main" hx-swap="outerHTML" hx-push-url="/contacts">
 			<fieldset>
 				<legend class="text-[30] font-bold mb-[10px]">Contact Values</legend>
 				<div class="table rows">
@@ -347,7 +371,7 @@ templ new_contact(c Contact) {
 						</div>
 					</p>
 				</div>
-				<button class="btn-outline">Save</button>
+				<button type="submit" class="btn-outline">Save</button>
 				<p class=" mt-[10px]">
 					<a hx-get="/contacts" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn">Back</a>
 				</p>
@@ -356,23 +380,10 @@ templ new_contact(c Contact) {
 	</main>
 }
 
-templ success_new() {
-	<div class="alert">
-		<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle> <path d="m9 12 2 2 4-4"></path> </svg>
-		<h2>Contact added successfully</h2>
-		<section>This is an alert with icon, title and description.</section>
-	</div>
-	<script>
-        setTimeout(() => {
-            window.location.href = '/contacts';
-        }, 1000);
-    </script>
-}
-
 templ edit_contact(c Contact) {
-	<main class="flex flex-col items-center">
-		<form action={ fmt.Sprintf("/contacts/%d/edit", c.ID) } method="post">
-			<div class="mb-[20px]">
+	<main class="flex flex-col items-center py-10">
+		<form action={ fmt.Sprintf("/contacts/%d/edit", c.ID) } method="post" hx-post={ fmt.Sprintf("/contacts/%d/edit", c.ID) } hx-target="main" hx-swap="outerHTML" hx-push-url={ fmt.Sprintf("/contacts/%d", c.ID) }>
+			<div class="mb-[20px] items-center flex justify-center">
 				<img
 					class="size-30 shrink-0 object-cover rounded-full"
 					alt="@hunvreus"
@@ -442,7 +453,7 @@ templ edit_contact(c Contact) {
 						<span class="error">{ c.Errors["phone"] }</span>
 					</div>
 				</div>
-				<button class="btn-outline mt-[20px] w-17">Save</button>
+				<button type="submit" class="btn-outline mt-[20px] w-17">Save</button>
 				<div class="flex flex-row mt-[10px]">
 					<p>
 						<a hx-get="/contacts/" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn mr-[10px]">Back</a>
@@ -451,10 +462,10 @@ templ edit_contact(c Contact) {
 						class="btn-destructive"
 						id="delete-btn"
 						hx-delete={ fmt.Sprintf("/contacts/%d", c.ID) }
-						hx-push-url="true"
 						hx-confirm="Are you sure you want to delete this contact?"
-						hx-target="body"
+						hx-target="main"
 						hx-swap="outerHTML"
+						hx-push-url="/contacts"
 					>
 						Delete
 						Contact
