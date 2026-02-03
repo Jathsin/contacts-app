@@ -47,9 +47,7 @@ templ layout(c templ.Component) {
 			<script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.2.8/dist/js/all.min.js" defer></script>
 		</head>
 		<body>
-			<main hx-boost="true">
-				@c
-			</main>
+			@c
 		</body>
 	</html>
 }
@@ -76,7 +74,7 @@ templ con_boton_tema(contenido templ.Component) {
 }
 
 templ index(contact_list []Contact, query string, page int, archive archiver.Archiver) {
-	<div class="mx-auto max-w-[600px] mb-20">
+	<main class="mx-auto max-w-[600px] mb-20">
 		<header class="text-center mb-[50px]">
 			<h1>
 				<all-caps class="font-mono">contacts.app</all-caps>
@@ -84,7 +82,7 @@ templ index(contact_list []Contact, query string, page int, archive archiver.Arc
 			<sub-title>A Demo Contacts Application</sub-title>
 		</header>
 		<p>
-			<button hx-get="/contacts/new" hx-target="body" hx-swap="innerHTML" hx-push-url="true" class="btn-outline my-[10px] mr-[10px]">Add Contact</button>
+			<button hx-get="/contacts/new" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn-outline my-[10px] mr-[10px]">Add Contact</button>
 			<span hx-get="/contacts/count" hx-trigger="revealed">
 				<button class="btn-outline" disabled>
 					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
@@ -95,7 +93,7 @@ templ index(contact_list []Contact, query string, page int, archive archiver.Arc
 		@archive_ui(archive)
 		@search_bar(query)
 		@contact_table(page, contact_list)
-	</div>
+	</main>
 }
 
 templ archive_ui(archive archiver.Archiver) {
@@ -217,7 +215,7 @@ templ contact_table(page int, contact_list []Contact) {
 				confirmButtonText: 'Delete'
 			})"
 			hx-swap="outerHTML swap:1s"
-			hx-target="body"
+			hx-target="main"
 		>
 			Delete Selected Contacts
 		</button>
@@ -255,10 +253,10 @@ templ rows(contact_list []Contact) {
 						<div id="demo-dropdown-menu-popover" data-popover aria-hidden="true" class="min-w-56">
 							<div role="menu" id="demo-dropdown-menu-menu" aria-labelledby="demo-dropdown-menu-trigger">
 								<div role="group" aria-labelledby="account-options" id={ fmt.Sprintf("contact-menu-%d", c.ID) }>
-									<a href={ fmt.Sprintf("/contacts/%d/edit", c.ID) }>
+									<a hx-get={ fmt.Sprintf("/contacts/%d/edit", c.ID) } hx-target="main" hx-swap="outerHTML">
 										<div role="menuitem">Edit</div>
 									</a>
-									<a href={ fmt.Sprintf("/contacts/%d", c.ID) }>
+									<a hx-get={ fmt.Sprintf("/contacts/%d", c.ID) } hx-target="main" hx-swap="outerHTML">
 										<div role="menuitem">View</div>
 									</a>
 								</div>
@@ -272,7 +270,7 @@ templ rows(contact_list []Contact) {
 }
 
 templ show(c Contact) {
-	<div class="flex flex-col items-center">
+	<main class="flex flex-col items-center">
 		<div>
 			<img class="size-30 shrink-0 object-cover rounded-full" alt="@hunvreus" src="https://github.com/hunvreus.png"/>
 		</div>
@@ -284,14 +282,14 @@ templ show(c Contact) {
 			<div class="text-[15px]"><b>Email:</b> { c.Email }</div>
 		</div>
 		<div class="mt-[20px]">
-			<a href="/contacts" class="btn-outline">Back</a>
-			<a href={ fmt.Sprintf("/contacts/%d/edit", c.ID) } class="btn-outline">Edit</a>
+			<a hx-get="/contacts" hx-target="main" hx-swap="outerHTML" class="btn-outline">Back</a>
+			<a hx-get={ fmt.Sprintf("/contacts/%d/edit", c.ID) } hx-target="main" hx-swap="outerHTML" class="btn-outline">Edit</a>
 		</div>
-	</div>
+	</main>
 }
 
 templ new_contact(c Contact) {
-	<div class="py-10 flex flex-col items-center">
+	<main class="py-10 flex flex-col items-center">
 		<form class="form grid gap-6" action="/contacts/new" method="post">
 			<fieldset>
 				<legend class="text-[30] font-bold mb-[10px]">Contact Values</legend>
@@ -341,11 +339,11 @@ templ new_contact(c Contact) {
 				</div>
 				<button class="btn-outline">Save</button>
 				<p class=" mt-[10px]">
-					<a href="/contacts" class="btn">Back</a>
+					<a hx-get="/contacts" hx-target="main" hx-swap="outerHTML" class="btn">Back</a>
 				</p>
 			</fieldset>
 		</form>
-	</div>
+	</main>
 }
 
 templ success_new() {
@@ -362,7 +360,7 @@ templ success_new() {
 }
 
 templ edit_contact(c Contact) {
-	<div class="flex flex-col items-center">
+	<main class="flex flex-col items-center">
 		<form action={ fmt.Sprintf("/contacts/%d/edit", c.ID) } method="post">
 			<div class="mb-[20px]">
 				<img
@@ -437,7 +435,7 @@ templ edit_contact(c Contact) {
 				<button class="btn-outline mt-[20px] w-17">Save</button>
 				<div class="flex flex-row mt-[10px]">
 					<p>
-						<a href="/contacts/" class="btn mr-[10px]">Back</a>
+						<a hx-get="/contacts/" hx-target="main" hx-swap="outerHTML" class="btn mr-[10px]">Back</a>
 					</p>
 					<button
 						class="btn-destructive"
@@ -454,7 +452,7 @@ templ edit_contact(c Contact) {
 				</div>
 			</fieldset>
 		</form>
-	</div>
+	</main>
 }
 
 templ success_delete() {

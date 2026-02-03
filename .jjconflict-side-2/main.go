@@ -152,8 +152,12 @@ func contact_query_handler(w http.ResponseWriter, r *http.Request) {
 			page = 1
 		}
 		contact_list := get_contact_list(page)
-		templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 
+		if r.Header.Get("HX-Request") == "true" {
+			templ.Handler(index(contact_list, "", page, myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		} else {
+			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		}
 		return
 	}
 
