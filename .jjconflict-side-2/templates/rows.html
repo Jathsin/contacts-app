@@ -1,0 +1,53 @@
+{{ block "rows" . }}
+<tbody>
+    {{ range .Contacts }}
+    <tr>
+        <td><input type="checkbox" name="selected_contact_ids" value="{{ .ID }}" x-model="selected"></td>
+        <td>{{ .First }}</td>
+        <td>{{ .Last }}</td>
+        <td>{{ .Phone }}</td>
+        <td>{{ .Email }}</td>
+        <td class="p-2">
+            <div class="flex justify-center items-center h-full">
+                <img class="size-8 shrink-0 object-cover rounded-full" alt="@hunvreus"
+                    src="https://github.com/hunvreus.png">
+            </div>
+        </td>
+        <td>
+            <!-- <div data-overflow-menu>
+                <button type="button" aria-hahspopup="menu" aria-controls="contact-menu-{{ .ID }}">
+                    Options</button>
+                <div role="menu" id="contact-menu-{{ .ID }}">
+                    <a role="menuitem" href="/contacts/{{ .ID }}/edit">Edit</a>
+                    <a role="menuitem" href="/contacts/{{ .ID }}">View</a>
+                </div>
+            </div> -->
+
+            <div id="demo-dropdown-menu" class="dropdown-menu" data-overflow-menu>
+                <button type="button" id="demo-dropdown-menu-trigger" aria-haspopup="menu"
+                    aria-controls="demo-dropdown-menu-menu" aria-expanded="false" class="btn-outline">Options</button>
+                <div id="demo-dropdown-menu-popover" data-popover aria-hidden="true" class="min-w-56">
+                    <div role="menu" id="demo-dropdown-menu-menu" aria-labelledby="demo-dropdown-menu-trigger">
+                        <div role="group" aria-labelledby="account-options" id="contact-menu-{{ .ID }}">
+
+                            <a href="/contacts/{{ .ID }}/edit">
+                                <div role="menuitem">Edit</div>
+                            </a>
+                            <!-- <span class="text-muted-foreground ml-auto text-xs tracking-widest">P</span> -->
+                            <a href="/contacts/{{ .ID }}">
+                                <div role="menuitem">View</div>
+                            </a>
+                            <!-- <span class="text-muted-foreground ml-auto text-xs tracking-widest">B</span> -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- <a href="/contacts/{{ .ID }}/edit">Edit</a>
+            <a href="/contacts/{{ .ID }}">View</a>
+            <a href="#" hx-delete="/contacts/{{ .ID }}" hx-confirm="Are you sure you want to kill this contact?"
+                hx-swap="outerHTML swap:1s" hx-target="closest tr">Delete</a> -->
+        </td>
+    </tr>
+    {{ end }}
+</tbody>
+{{ end }}

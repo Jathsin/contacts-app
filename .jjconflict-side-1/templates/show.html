@@ -1,0 +1,24 @@
+{{ block "show" . }}
+{{ template "layout-head" . }}
+{{ template "contact" . }}
+{{ template "layout-foot" . }}
+{{ end }}
+
+{{ block "contact" . }}
+<div class="flex flex-col items-center">
+    <div> <img class="size-30 shrink-0 object-cover rounded-full" alt="@hunvreus" src="https://github.com/hunvreus.png">
+    </div>
+    <div class="mt-[20px]">
+        <h1 class="text-[30] font-bold">{{ .First }} {{ .Last }}</h1>
+    </div>
+    <div class="mt-[20px]">
+        <div class="text-[15px]"><b>Phone:</b> {{ .Phone }}</div>
+        <div class="text-[15px]"><b>Email:</b> {{ .Email }}</div>
+    </div>
+
+    <div class="mt-[20px]">
+        <a href="/contacts" class="btn-outline">Back</a>
+        <a href="/contacts/{{ .ID }}/edit" class="btn-outline">Edit</a>
+    </div>
+</div>
+{{ end }}
