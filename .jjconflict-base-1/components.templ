@@ -214,7 +214,7 @@ templ contact_table(page int, contact_list []Contact) {
 				showCancelButton: true,
 				confirmButtonText: 'Delete'
 			})"
-			hx-swap="outerHTML swap:1s"
+			hx-swap="outerHTML"
 			hx-target="main"
 		>
 			Delete Selected Contacts
@@ -259,6 +259,16 @@ templ rows(contact_list []Contact) {
 									<a hx-get={ fmt.Sprintf("/contacts/%d", c.ID) } hx-target="main" hx-swap="outerHTML">
 										<div role="menuitem">View</div>
 									</a>
+									<a
+										hx-delete={ fmt.Sprintf("/contacts/%d", c.ID) }
+										hx-push-url="true"
+										hx-confirm="Are you sure you want to delete this contact?"
+										hx-target="closest tr"
+										hx-swap="outerHTML swap:400ms"
+										class="fade-swap"
+									>
+										<div role="menuitem">Delete</div>
+									</a>
 								</div>
 							</div>
 						</div>
@@ -270,7 +280,7 @@ templ rows(contact_list []Contact) {
 }
 
 templ show(c Contact) {
-	<main class="flex flex-col items-center">
+	<main class="flex flex-col items-center py-10">
 		<div>
 			<img class="size-30 shrink-0 object-cover rounded-full" alt="@hunvreus" src="https://github.com/hunvreus.png"/>
 		</div>
@@ -282,8 +292,8 @@ templ show(c Contact) {
 			<div class="text-[15px]"><b>Email:</b> { c.Email }</div>
 		</div>
 		<div class="mt-[20px]">
-			<a hx-get="/contacts" hx-target="main" hx-swap="outerHTML" class="btn-outline">Back</a>
-			<a hx-get={ fmt.Sprintf("/contacts/%d/edit", c.ID) } hx-target="main" hx-swap="outerHTML" class="btn-outline">Edit</a>
+			<a hx-get="/contacts" hx-target="main" hx-swap="outerHTML" class="btn-outline" hx-push-url="true">Back</a>
+			<a hx-get={ fmt.Sprintf("/contacts/%d/edit", c.ID) } hx-target="main" hx-swap="outerHTML" class="btn-outline" hx-push-url="true">Edit</a>
 		</div>
 	</main>
 }
@@ -339,7 +349,7 @@ templ new_contact(c Contact) {
 				</div>
 				<button class="btn-outline">Save</button>
 				<p class=" mt-[10px]">
-					<a hx-get="/contacts" hx-target="main" hx-swap="outerHTML" class="btn">Back</a>
+					<a hx-get="/contacts" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn">Back</a>
 				</p>
 			</fieldset>
 		</form>
@@ -435,7 +445,7 @@ templ edit_contact(c Contact) {
 				<button class="btn-outline mt-[20px] w-17">Save</button>
 				<div class="flex flex-row mt-[10px]">
 					<p>
-						<a hx-get="/contacts/" hx-target="main" hx-swap="outerHTML" class="btn mr-[10px]">Back</a>
+						<a hx-get="/contacts/" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn mr-[10px]">Back</a>
 					</p>
 					<button
 						class="btn-destructive"
