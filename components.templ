@@ -1,0 +1,515 @@
+package main
+
+import (
+	"fmt"
+	"hypermedia/archiver"
+	"strings"
+)
+
+templ layout(c templ.Component) {
+	<!DOCTYPE html>
+	<html lang="">
+		<head>
+			<meta charset="utf-8"/>
+			<!-- theme switcher -->
+			<script>
+                (() => {
+                    try {
+                        const stored = localStorage.getItem('themeMode');
+                        if (stored ? stored === 'dark'
+                            : matchMedia('(prefers-color-scheme: dark)').matches) {
+                            document.documentElement.classList.add('dark');
+                        }
+                    } catch (_) { }
+
+                    const apply = dark => {
+                        document.documentElement.classList.toggle('dark', dark);
+                        try { localStorage.setItem('themeMode', dark ? 'dark' : 'light'); } catch (_) { }
+                    };
+
+                    document.addEventListener('basecoat:theme', (event) => {
+                        const mode = event.detail?.mode;
+                        apply(mode === 'dark' ? true
+                            : mode === 'light' ? false
+                                : !document.documentElement.classList.contains('dark'));
+                    });
+                })();
+            </script>
+			<title>Contact App</title>
+			<!-- <link rel="stylesheet" href="https://the.missing.style/v0.2.0/missing.min.css"> -->
+			<link rel="stylesheet" href="/static/site.css"/>
+			<script src="https://unpkg.com/htmx.org@2.0.4/dist/htmx.js" integrity="sha384-oeUn82QNXPuVkGCkcrInrS1twIxKhkZiFfr2TdiuObZ3n3yIeMiqcRzkIcguaof1" crossorigin="anonymous"></script>
+			<script src="/static/js/rsjs.js"></script>
+			<script defer src="https://unpkg.com/alpinejs"></script>
+			<script src="//unpkg.com/hyperscript.org"></script>
+			<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+			<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+			<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/basecoat-css@0.2.8/dist/basecoat.cdn.min.css"/>
+			<script src="https://cdn.jsdelivr.net/npm/basecoat-css@0.2.8/dist/js/all.min.js" defer></script>
+		</head>
+		<body>
+			@c
+		</body>
+	</html>
+}
+
+templ con_boton_tema(contenido templ.Component) {
+	<div class="flex justify-end p-4 mx-[40px] mt-[40px]">
+		<button
+			type="button"
+			aria-label="Toggle dark mode"
+			data-tooltip="Toggle dark mode"
+			data-side="bottom"
+			onclick="document.dispatchEvent(new CustomEvent('basecoat:theme'))"
+			class="btn-icon-outline size-8"
+		>
+			<span class="hidden dark:block">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+			</span>
+			<span class="block dark:hidden">
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+			</span>
+		</button>
+	</div>
+	@contenido
+}
+
+templ index(contact_list []Contact, query string, page int, archive archiver.Archiver, flash_message string) {
+	<main class="mx-auto max-w-[600px] mb-20">
+		<header class="text-center mb-[50px]">
+			<h1>
+				<all-caps class="font-mono">contacts.app</all-caps>
+			</h1>
+			<sub-title>A Demo Contacts Application</sub-title>
+		</header>
+		// flash messages
+		if flash_message != "" {
+			<div
+				if strings.Contains(flash_message, "deleted") {
+					class="alert-destructive"
+				} else {
+					class="alert"
+				}
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle> <path d="m9 12 2 2 4-4"></path> </svg>
+				<h2>{ flash_message }</h2>
+			</div>
+		}
+		<p>
+			<button hx-get="/contacts/new" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn-outline my-[10px] mr-[10px]">Add Contact</button>
+			<span hx-get="/contacts/count" hx-trigger="load, contacts-changed from:body">
+				<button class="btn-outline" disabled>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
+					Loading
+				</button>
+			</span>
+		</p>
+		@archive_ui(archive)
+		@search_bar(query)
+		@contact_table(page, contact_list)
+	</main>
+}
+
+templ archive_ui(archive archiver.Archiver) {
+	<div id="archive-ui" class="mb-[15px]">
+		if archive.State == "waiting" {
+			<button hx-post="/contacts/archive" hx-target="this" hx-swap="outerHTML" class="btn-outline">Download Contact Archive</button>
+		} else if archive.Status() == "running" {
+			<div hx-get="/contacts/archive" hx-target="this" hx-swap="outerHTML" hx-trigger="load delay:500ms">
+				Creating Archive...
+				<div class="progress">
+					<div
+						id="archive-progress"
+						class="progress-bar"
+						role="progressbar"
+						aria-valuenow={ archive.Progress() * 100 }
+						style={ fmt.Sprintf("width:%.2f%%;", archive.Progress()*100) }
+					></div>
+				</div>
+			</div>
+		} else if archive.State == "complete" {
+			<a href="/contacts/archive/file">
+				<button class="btn-outline">Archive Ready! Click here to download. &downarrow;</button>
+			</a>
+			<!-- <a hx-boost="false" href="/contacts/archive/file" _="on load click() me">
+            Archive Downloading! Click here if the download does not start.
+        </a> -->
+			<button hx-delete="/contacts/archive" hx-target="#archive-ui" hx-swap="outerHTML" class="btn-outline">Clear Download</button>
+		}
+	</div>
+}
+
+templ search_bar(query string) {
+	<form
+		action="/contacts"
+		method="get"
+		class="form grid gap-6"
+		hx-get="/contacts"
+		hx-push-url="true"
+		hx-target="tbody"
+		hx-select="tbody tr"
+	>
+		<div class="flex items-center space-x-2">
+			<input
+				class="input"
+				id="search"
+				type="search"
+				name="q"
+				value={ query }
+				hx-get="/contacts"
+				hx-push-url="true"
+				hx-trigger="search, keyup delay:200ms changed"
+				hx-target="tbody"
+				hx-select="tbody tr"
+				hx-indicator="#spinner"
+				_="on keydown[altKey and code is 'KeyS'] from the window focus() me"
+			/>
+			<button type="submit" class="btn">Submit</button>
+		</div>
+	</form>
+}
+
+templ contact_table(page int, contact_list []Contact) {
+	<form x-data="{selected: []}" class="mt-[30px]">
+		<template x-if="selected.length > 0">
+			<div class="box info tool-bat mb-[40px]">
+				<div class="flex flex-row gap-1 mb-[40px]">
+					<slot x-text="selected.length"></slot>
+					contacts selected
+					<button
+						type="button"
+						class="btn-destructive ml-[20px]"
+						@click="confirm(`Delete ${selected.length} contacts?`) &&
+						htmx.ajax('DELETE', '/contacts',
+						{ source: $root, target: document.querySelector('main'), swap: 'outerHTML'})"
+					>
+						Delete
+					</button>
+					<hr aria-orientation="vertical"/>
+					<button type="button" @click="selected=[]" class="btn-secondary ml-[20px]">Cancel</button>
+				</div>
+			</div>
+		</template>
+		<table class="table">
+			<thead>
+				<tr>
+					<th></th>
+					<th>First</th>
+					<th>Last</th>
+					<th>Phone</th>
+					<th>Email</th>
+					<th>Avatar</th> <!-- Avatar column (empty header) -->
+					<th></th> <!-- Options column (if needed) -->
+				</tr>
+			</thead>
+			@rows(contact_list)
+		</table>
+		<nav ole="navigation" aria-label="pagination" class="mx-auto flex w-full justify-center">
+			<ul class="flex flex-row items-center gap-1">
+				<li>
+					if page > 1 {
+						<a href="/contacts?page={{ add .Page -1 }}" class="btn-ghost">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="24"
+								height="24"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<path d="m15 18-6-6 6-6"></path>
+							</svg> Previous
+						</a>
+					}
+				</li>
+				<li>
+					if len(contact_list) == 10 {
+						<a href={ fmt.Sprintf("/contacts?page=%d", page+1) } class="btn-ghost">
+							Next 
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+						</a>
+					}
+				</li>
+			</ul>
+		</nav>
+		<button
+			type="button"
+			class="btn-destructive mt-[20px] mx-auto block"
+			:disabled="selected.length === 0"
+			hx-delete=" /contacts"
+			hx-trigger="confirmed"
+			@click="sweetConfirm($el, { 
+				title: 'Delete these contacts?', 
+				showCancelButton: true,
+				confirmButtonText: 'Delete'
+			})"
+			hx-swap="outerHTML"
+			hx-target="main"
+			hx-push-url="/contacts"
+		>
+			Delete Selected Contacts
+		</button>
+	</form>
+}
+
+templ rows(contact_list []Contact) {
+	<tbody>
+		for _, c := range contact_list {
+			<tr>
+				<td><input type="checkbox" name="selected_contact_ids" value={ c.ID } x-model="selected"/></td>
+				<td>{ c.First }</td>
+				<td>{ c.Last }</td>
+				<td>{ c.Phone }</td>
+				<td>{ c.Email }</td>
+				<td class="p-2">
+					<div class="flex justify-center items-center h-full">
+						<img
+							class="size-8 shrink-0 object-cover rounded-full"
+							alt="@hunvreus"
+							src="https://github.com/hunvreus.png"
+						/>
+					</div>
+				</td>
+				<td>
+					<div id="demo-dropdown-menu" class="dropdown-menu" data-overflow-menu>
+						<button
+							type="button"
+							id="demo-dropdown-menu-trigger"
+							aria-haspopup="menu"
+							aria-controls="demo-dropdown-menu-menu"
+							aria-expanded="false"
+							class="btn-outline"
+						>Options</button>
+						<div id="demo-dropdown-menu-popover" data-popover aria-hidden="true" class="min-w-56">
+							<div role="menu" id="demo-dropdown-menu-menu" aria-labelledby="demo-dropdown-menu-trigger">
+								<div role="group" aria-labelledby="account-options" id={ fmt.Sprintf("contact-menu-%d", c.ID) }>
+									<a hx-get={ fmt.Sprintf("/contacts/%d/edit", c.ID) } hx-target="main" hx-swap="outerHTML" hx-push-url={ fmt.Sprintf("/contacts/%d/edit", c.ID) }>
+										<div role="menuitem">Edit</div>
+									</a>
+									<a hx-get={ fmt.Sprintf("/contacts/%d", c.ID) } hx-target="main" hx-swap="outerHTML" hx-push-url={ fmt.Sprintf("/contacts/%d", c.ID) }>
+										<div role="menuitem">View</div>
+									</a>
+									<a
+										hx-delete={ fmt.Sprintf("/contacts/%d", c.ID) }
+										hx-confirm="Are you sure you want to delete this contact?"
+										hx-target="closest tr"
+										hx-swap="outerHTML swap:400ms"
+										class="fade-swap"
+									>
+										<div role="menuitem">Delete</div>
+									</a>
+								</div>
+							</div>
+						</div>
+					</div>
+				</td>
+			</tr>
+		}
+	</tbody>
+}
+
+templ show(c Contact) {
+	<main class="flex flex-col items-center py-10">
+		<div>
+			<img class="size-30 shrink-0 object-cover rounded-full" alt="@hunvreus" src="https://github.com/hunvreus.png"/>
+		</div>
+		<div class="mt-[20px]">
+			<h1 class="text-[30] font-bold">{ c.First } { c.Last }</h1>
+		</div>
+		<div class="mt-[20px]">
+			<div class="text-[15px]"><b>Phone:</b> { c.Phone }</div>
+			<div class="text-[15px]"><b>Email:</b> { c.Email }</div>
+		</div>
+		<div class="mt-[20px]">
+			<a hx-get="/contacts" hx-target="main" hx-swap="outerHTML" class="btn-outline" hx-push-url="true">Back</a>
+			<a hx-get={ fmt.Sprintf("/contacts/%d/edit", c.ID) } hx-target="main" hx-swap="outerHTML" class="btn-outline" hx-push-url="true">Edit</a>
+		</div>
+	</main>
+}
+
+templ new_contact(c Contact) {
+	<main class="py-10 flex flex-col items-center">
+		<form class="form grid gap-6" action="contacts/new" method="post" hx-post="/contacts/new" hx-target="main" hx-swap="outerHTML" hx-push-url="/contacts">
+			<fieldset>
+				<legend class="text-[30] font-bold mb-[10px]">Contact Values</legend>
+				<div class="table rows">
+					<p>
+						<label for="email" class="mb-[10px]">Email</label>
+						<div class="flex flex-row gap-6 mb-[20px]">
+							<input class="w-80" name="email" type="email" placeholder="Email" value={ c.Email }/>
+							<span class="error">{ c.Errors["email"] }</span>
+						</div>
+					</p>
+					<p>
+						<label for="first_name" class="mb-[10px]">First Name</label>
+						<div class="flex flex-row gap-6 mb-[20px]">
+							<input
+								class="w-80"
+								name="first_name"
+								id="first_name"
+								type="text"
+								placeholder="First Name"
+								value={ c.First }
+							/>
+							<span class="error">{ c.Errors["first"] }</span>
+						</div>
+					</p>
+					<p>
+						<label for="last_name" class="mb-[10px]">Last Name</label>
+						<div class="flex flex-row gap-6 mb-[20px]">
+							<input
+								class="w-80"
+								name="last_name"
+								id="last_name"
+								type="text"
+								placeholder="Last Name"
+								value={ c.Last }
+							/>
+							<span class="error">{ c.Errors["last"] }</span>
+						</div>
+					</p>
+					<p>
+						<label for="phone" class="mb-[10px]">Phone</label>
+						<div class="flex flex-row gap-6 mb-[20px]">
+							<input class="w-80" name="phone" id="phone" type="text" placeholder="Phone" value={ c.Phone }/>
+							<span class="error">{ c.Errors["phone"] }</span>
+						</div>
+					</p>
+				</div>
+				<button type="submit" class="btn-outline">Save</button>
+				<p class=" mt-[10px]">
+					<a hx-get="/contacts" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn">Back</a>
+				</p>
+			</fieldset>
+		</form>
+	</main>
+}
+
+templ edit_contact(c Contact) {
+	<main class="flex flex-col items-center py-10">
+		<form action={ fmt.Sprintf("/contacts/%d/edit", c.ID) } method="post" hx-post={ fmt.Sprintf("/contacts/%d/edit", c.ID) } hx-target="main" hx-swap="outerHTML" hx-push-url={ fmt.Sprintf("/contacts/%d", c.ID) }>
+			<div class="mb-[20px] items-center flex justify-center">
+				<img
+					class="size-30 shrink-0 object-cover rounded-full"
+					alt="@hunvreus"
+					src="https://github.com/hunvreus.png"
+				/>
+			</div>
+			<fieldset class="form grid gap-6">
+				<legend class="text-[30] font-bold mb-[10px]">Contact Values</legend>
+				<div class="table rows">
+					<p class="mb-[10px]">
+						<label for="email">Email</label>
+					</p>
+					<div class="flex flex-row gap-6 mb-[20px]">
+						<input
+							class="w-80"
+							name="email"
+							id="email"
+							type="email"
+							hx-get={ fmt.Sprintf("/contacts/%d/email", c.ID) }
+							hx-trigger="change, keyup delay:200ms changed"
+							hx-target="next .error"
+							placeholder="Email"
+							value={ c.Email }
+						/>
+						<span class="error">{ c.Errors["email"] }</span>
+					</div>
+					<p class="mb-[10px]">
+						<label for="first_name">First Name</label>
+					</p>
+					<div class="flex flex-row gap-6 mb-[20px]">
+						<input
+							class="w-80"
+							name="first_name"
+							id="first_name"
+							type="text"
+							placeholder="First Name"
+							value={ c.First }
+						/>
+						<span class="error">{ c.Errors["first"] }</span>
+					</div>
+					<p class="mb-[10px]">
+						<label for="last_name">Last Name</label>
+					</p>
+					<div class="flex flex-row gap-6 mb-[20px]">
+						<input
+							class="w-80"
+							name="last_name"
+							id="last_name"
+							type="text"
+							placeholder="Last Name"
+							value={ c.Last }
+						/>
+						<span class="error">{ c.Errors["last"] }</span>
+					</div>
+					<p class="mb-[10px]">
+						<label for="phone">Phone</label>
+					</p>
+					<div class="flex flex-row gap-6 mb-[20px]">
+						<input
+							class="w-80"
+							name="phone"
+							id="phone"
+							type="text"
+							placeholder="Phone"
+							value={ c.Phone }
+						/>
+						<span class="error">{ c.Errors["phone"] }</span>
+					</div>
+				</div>
+				<button type="submit" class="btn-outline mt-[20px] w-17">Save</button>
+				<div class="flex flex-row mt-[10px]">
+					<p>
+						<a hx-get="/contacts/" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn mr-[10px]">Back</a>
+					</p>
+					<button
+						class="btn-destructive"
+						id="delete-btn"
+						hx-delete={ fmt.Sprintf("/contacts/%d", c.ID) }
+						hx-confirm="Are you sure you want to delete this contact?"
+						hx-target="main"
+						hx-swap="outerHTML"
+						hx-push-url="/contacts"
+					>
+						Delete
+						Contact
+					</button>
+				</div>
+			</fieldset>
+		</form>
+	</main>
+}
+
+templ success_delete() {
+	<div class="alert w-150">
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			width="24"
+			height="24"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+		>
+			<circle cx="12" cy="12" r="10"></circle>
+			<path d="m9 12 2 2 4-4"></path>
+		</svg>
+		<h2>Contact deleted successfully</h2>
+		<section>This is an alert with icon, title and description.</section>
+	</div>
+	<script>
+        setTimeout(() => {
+            window.location.href = '/contacts';
+        }, 1000);
+    </script>
+}
+
+templ error_email(err string) {
+	<span class="error">{ err }</span>
+}
