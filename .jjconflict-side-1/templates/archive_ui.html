@@ -1,0 +1,24 @@
+{{ block "archive_ui" . }}
+<div id="archive-ui" hx-target="this" hx-swap="outerHTML" class="mb-[15px]">
+    {{ if eq .Status "Waiting"}}
+    <button hx-post="/contacts/archive" class="btn-outline">Download Contact Archive</button>
+    {{ else if eq .Status "Running"}}
+    <div hx-get="/contacts/archive" hx-trigger="load delay:500ms">
+        Creating Archive...
+        <div class="progress">
+            <div id="archive-progress" class="progress-bar" role="progressbar" aria-valuenow="{{ mult .Progress 100 }}"
+                style="width:{{ mult .Progress 100 }}%;"></div>
+        </div>
+    </div>
+    {{ else if eq .Status "Complete" }}
+    <a hx-boost="false" href="/contacts/archive/file">
+        <button class="btn-outline"> Archive Ready! Click here to download. &downarrow;</button>
+    </a>
+    <!-- <a hx-boost="false" href="/contacts/archive/file" _="on load click() me">
+        Archive Downloading! Click here if the download does not start.
+    </a> -->
+
+    <button hx-delete="/contacts/archive" class="btn-outline">Clear Download</button>
+    {{ end }}
+</div>
+{{ end }}

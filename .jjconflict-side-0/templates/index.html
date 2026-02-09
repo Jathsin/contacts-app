@@ -1,0 +1,119 @@
+{{ block "index" . }}
+{{ template "layout-head" . }}
+{{ template "index-content". }}
+{{ template "layout-foot" . }}
+{{ end }}
+
+
+{{ block "index-content" . }}
+<main class="mx-[600px] mb-20">
+    <header class="text-center mb-[50px]">
+        <h1>
+            <all-caps class="font-mono">contacts.app</all-caps>
+        </h1>
+        <sub-title>A Demo Contacts Application</sub-title>
+    </header>
+    <p>
+        <a href="/contacts/new" class="btn-outline my-[10px] mr-[10px]"> Add Contact</a>
+        <span hx-get="/contacts/count" hx-trigger="revealed">
+            <button class="btn-outline" disabled>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="animate-spin">
+                    <path d="M12 2v4" />
+                    <path d="m16.2 7.8 2.9-2.9" />
+                    <path d="M18 12h4" />
+                    <path d="m16.2 16.2 2.9 2.9" />
+                    <path d="M12 18v4" />
+                    <path d="m4.9 19.1 2.9-2.9" />
+                    <path d="M2 12h4" />
+                    <path d="m4.9 4.9 2.9 2.9" />
+                </svg>
+                Loading
+            </button>
+        </span>
+    </p>
+    {{ template "archive_ui" .Archiver }}
+    {{ template "form" . }}
+    {{ template "contact_table" . }}
+</main>
+{{end}}
+
+<!-- Make spinning circle appear -->
+{{ block "form" . }}
+
+<form action="/contacts" method="get" class="form grid gap-6">
+    <div class="flex items-center space-x-2">
+        <input class="input" id="search" type="search" name="q" value="{{ .Query }}" hx-get="/contacts"
+            hx-push-url="true" hx-trigger="search, keyup delay:200ms changed" hx-target="tbody" hx-select="tbody tr"
+            hx-indicator="#spinner" _="on keydown[altKey and code is 'KeyS'] from the window focus() me">
+        <button type="submit" class="btn">Submit</button>
+    </div>
+    <!-- 
+    <label for="search">Search Term</label>
+    <input id="search" type="search" name="q" value="{{ .Query }}" hx-get="/contacts" hx-push-url="true"
+        hx-trigger="search, keyup delay:200ms changed" hx-target="tbody" hx-select="tbody tr" hx-indicator="#spinner"
+        _="on keydown[altKey and code is 'KeyS'] from the window focus() me" />
+    <input type="submit" value="Search" /> -->
+</form>
+{{ end }}
+
+{{ block "contact_table" . }}
+<form x-data="{selected: []}" class="mt-[30px]">
+    <template x-if="selected.length > 0">
+        <div class="box info tool-bat mb-[40px]">
+            <div class="flex flex-row gap-1 mb-[40px]">
+                <slot x-text="selected.length"></slot>
+                contacts selected
+                <!-- <button type="button" class="bad bg color border btn-destructive ml-[20px]" @click="confirm(`Delete ${selected.length} contacts?`) &&
+            htmx.ajax('DELETE', '/contacts', { source: $root, target: document.body })">Delete</button> -->
+                <button type="button" @click="selected=[]" class="btn-secondary ml-[20px]">Cancel</button>
+            </div>
+        </div>
+    </template>
+
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th></th>
+                <th>First</th>
+                <th>Last</th>
+                <th>Phone</th>
+                <th>Email</th>
+                <th>Avatar</th> <!-- Avatar column (empty header) -->
+                <th></th> <!-- Options column (if needed) -->
+            </tr>
+        </thead>
+        {{ template "rows" . }}
+    </table>
+    <nav ole="navigation" aria-label="pagination" class="mx-auto flex w-full justify-center">
+
+        <ul class="flex flex-row items-center gap-1">
+            <li>
+                {{ if gt .Page 1 }}
+                <a href="/contacts?page={{ add .Page -1 }}" class="btn-ghost"><svg xmlns="http://www.w3.org/2000/svg"
+                        width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 18-6-6 6-6" />
+                    </svg> Previous</a>
+                {{ end }}
+            </li>
+            <li>
+                {{ if eq (len .Contacts) 10 }}
+                <a href="/contacts?page={{ add .Page 1 }}" class="btn-ghost">Next <svg
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 18 6-6-6-6" />
+                    </svg></a>
+
+                {{ end }}
+            </li>
+        </ul>
+    </nav>
+    <button class="btn-destructive mt-[20px] mx-auto block" :disabled="selected.length === 0" hx-delete=" /contacts"
+        hx-confirm="Want to delete?" hx-swap="outerHTML swap:1s" hx-target="body">
+        Delete Selected Contacts
+    </button>
+</form>
+{{end}}
