@@ -1,9 +1,0 @@
-services:
-  contacts-app:
-    image: contacts-app:fixed
-    x-ports:
-      - contacts.stmit.es:8080/https # debe coincidir con el puerto que escucha la app
-
-    restart: always
-
-    pull_policy: never # para que no intente descargar imagen de Docker Hub, usamos imágenes locales
