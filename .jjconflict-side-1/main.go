@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"hypermedia/archiver"
-	"hypermedia/auth"
 	"log/slog"
 	"net/http"
 	"os"
@@ -22,7 +21,17 @@ var log *slog.Logger
 
 var contacts []Contact
 var contacts_data []byte
+
 var myArchiver archiver.Archiver
+
+var SUCCESS = "Contact added successfully"
+var DELETE = "Contact deleted successfully"
+
+// TODO: use MongoDB
+var users = map[string]string{
+	"user1": "password1",
+	"user2": "password2",
+}
 
 func templ_error(r *http.Request, err error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -46,9 +55,6 @@ func main() {
 
 	// Set default archvier status for user
 	myArchiver = *archiver.Get()
-
-	//Get mux from auth package
-	auth_mux, err := auth.Get_mux()
 
 	mux := http.NewServeMux()
 
@@ -86,8 +92,15 @@ func main() {
 
 	mux.HandleFunc("GET /contacts/archive/file", archive_file_handler)
 
-	mux.Handle("GET /auth/", http.StripPrefix("/auth", auth_mux))
-	mux.Handle("POST /auth/", http.StripPrefix("/auth", auth_mux))
+	// Auth api
+
+	mux.HandleFunc("POST /sign-in", sign_in_handler)
+
+	mux.HandleFunc("GET /welcome", welcome_handler)
+
+	mux.HandleFunc("POST /refresh", refresh_handler)
+
+	mux.HandleFunc("POST /logout", logout_handler)
 
 	// json api
 	mux.HandleFunc("GET /api/v1/contacts", get_contacts_handler)
@@ -122,28 +135,9 @@ func redirect_handler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/contacts", http.StatusFound)
 }
 
-type Contact struct {
-	ID     int               `json:"id"`
-	First  string            `json:"first"`
-	Last   string            `json:"last"`
-	Email  string            `json:"email"`
-	Phone  string            `json:"phone"`
-	Errors map[string]string `json:"errors"`
-}
-
-type PageData struct {
-	Contacts []Contact
-	Query    string
-	Page     int
-	Archiver archiver.Archiver
-}
-
 func ForceError() (string, error) {
 	return "", errors.New("error forzado desde helpers")
 }
-
-var SUCCESS = "Contact added successfully"
-var DELETE = "Contact deleted successfully"
 
 // /contacts?q={id}
 func contact_query_handler(w http.ResponseWriter, r *http.Request) {
@@ -164,7 +158,7 @@ func contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("HX-Request") == "true" {
 			templ.Handler(index(contact_list, "", page, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		} else {
-			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver, ""))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver, ""), auth_dialog())), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		}
 		return
 	}
@@ -226,9 +220,9 @@ func contact_id_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Show contact information
 	if r.Header.Get("HX-Request") == "true" {
-		templ.Handler(layout(show(*c)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(show(*c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(show(*c))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(show(*c), auth_dialog())), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 
 	// s := show(*c)
@@ -341,7 +335,7 @@ func get_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		templ.Handler(edit_contact(*c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(edit_contact(*c))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(edit_contact(*c), auth_dialog())), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 }
 
@@ -569,6 +563,134 @@ func archive_file_handler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// AUTH HANDELRS
+
+func sign_in_handler(w http.ResponseWriter, r *http.Request) {
+
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	expected_password, ok := users[username]
+	if !ok || expected_password != password {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		log.Error("sign_in_handler: invalid credentials for user " + username)
+		return
+	}
+
+	// create session
+	session_token := uuid.NewString()
+	expires_at := time.Now().Add(120 * time.Second)
+	sessions[session_token] = session{
+		username: username,
+		expiry:   expires_at,
+	}
+
+	// tell browser
+	http.SetCookie(w, &http.Cookie{
+		Name:    "session_token",
+		Value:   session_token,
+		Expires: expires_at,
+	})
+
+	templ.Handler(con_boton_tema(index(get_contact_list(1), "", 1, myArchiver, ""), profile_card(username)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+}
+
+func welcome_handler(w http.ResponseWriter, r *http.Request) {
+
+	// check session validity
+	cookie, err := r.Cookie("session_token")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// does the session exist?
+	session_token := cookie.Value
+	current_session, exists := sessions[session_token]
+	if !exists {
+		http.Error(w, "session does not exist", http.StatusUnauthorized)
+		return
+	}
+	if current_session.is_expired() {
+		delete(sessions, session_token)
+		http.Error(w, "session is expired", http.StatusUnauthorized)
+		return
+	}
+
+	w.Write([]byte(fmt.Sprintf("Welcome %s!", current_session.username)))
+}
+
+// Prevents user from login in everytime a session expires
+func refresh_handler(w http.ResponseWriter, r *http.Request) {
+
+	// check session validity
+	cookie, err := r.Cookie("session_token")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// does the session exist?
+	session_token := cookie.Value
+	current_session, exists := sessions[session_token]
+	if !exists {
+		http.Error(w, "session does not exist", http.StatusUnauthorized)
+		return
+	}
+	if current_session.is_expired() {
+		delete(sessions, session_token)
+		http.Error(w, "session is expired", http.StatusUnauthorized)
+		return
+	}
+	// End of boilerplate code for validating session cookie
+
+	new_session_token := uuid.NewString()
+	expires_at := time.Now().Add(120 * time.Second)
+
+	delete(sessions, session_token)
+
+	sessions[new_session_token] = session{
+		username: current_session.username,
+		expiry:   expires_at,
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    "session_token",
+		Value:   new_session_token,
+		Expires: expires_at,
+	})
+}
+
+func logout_handler(w http.ResponseWriter, r *http.Request) {
+	// check session validity
+	cookie, err := r.Cookie("session_token")
+	if err != nil {
+		if err == http.ErrNoCookie {
+			http.Error(w, err.Error(), http.StatusUnauthorized)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	delete(sessions, cookie.Value)
+	http.SetCookie(w, &http.Cookie{
+		Name:    "session_token",
+		Value:   "",
+		Expires: time.Now(),
+	})
+
+	templ.Handler(con_boton_tema(index(get_contact_list(1), "", 1, myArchiver, ""), auth_dialog()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+}
+
 //------------------------------------------------------------------------------
 // JSON Api
 //------------------------------------------------------------------------------
@@ -668,7 +790,6 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 		log.Error("post_contacts_handler: wrong contact format: ", "errors", json_error_response)
 	}
-
 }
 
 // /GET /api/v1/contacts/{id}
