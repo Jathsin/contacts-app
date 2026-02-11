@@ -122,7 +122,7 @@ func main() {
 		Addr:         ":8080",
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 90 * time.Second,
-		Handler:      logging(mux),
+		Handler:      auth(logging(mux)),
 	}
 	err = server.ListenAndServe()
 	if err != nil {
@@ -1009,23 +1009,6 @@ func delete_contact_handler_json(w http.ResponseWriter, r *http.Request) {
 // -----------------------------------------------------------------------------
 // AUXILIARY FUNCTIONS
 
-func logging(f http.Handler) http.Handler {
-
-	return (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := uuid.New().String()
-		log := log.With("request_id", id)
-
-		log.Info("NewRequest",
-			"method", r.Method, "url", r.URL.Path,
-			"remoteAddress", r.RemoteAddr)
-
-		ctx := context.WithValue(r.Context(), "log", log)
-		r = r.WithContext(ctx)
-		// Calls actual handler
-		f.ServeHTTP(w, r)
-	}))
-}
-
 func load_contacts() error {
 
 	var err error
@@ -1111,4 +1094,62 @@ func validate_email(id int, email string) string {
 		}
 	}
 	return ""
+}
+
+// MIDDLEWARE ----------------------------------------------------------------------
+
+func logging(f http.Handler) http.Handler {
+
+	return (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := uuid.New().String()
+		log := log.With("request_id", id)
+
+		log.Info("NewRequest",
+			"method", r.Method, "url", r.URL.Path,
+			"remoteAddress", r.RemoteAddr)
+
+		ctx := context.WithValue(r.Context(), "log", log)
+		r = r.WithContext(ctx)
+		// Calls actual handler
+		f.ServeHTTP(w, r)
+	}))
+}
+
+// It must be done this way to avoid collisions, it is an inherent Go practice
+type ctx_key string
+
+const user_key ctx_key = "username"
+
+func auth(f http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// check session validity
+		cookie, err := r.Cookie("session_token")
+		if err != nil {
+			if err == http.ErrNoCookie {
+				http.Error(w, err.Error(), http.StatusUnauthorized)
+				return
+			}
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// does the session exist?
+		session_token := cookie.Value
+		current_session, exists := sessions[session_token]
+		if !exists {
+			http.Error(w, "session does not exist", http.StatusUnauthorized)
+			return
+		}
+		if current_session.is_expired() {
+			delete(sessions, session_token)
+			http.Error(w, "session is expired", http.StatusUnauthorized)
+			return
+		}
+
+		// We pass the username to the handler through the context, so handlers can know which user is performing the request and act accordingly
+		ctx := context.WithValue(r.Context(), user_key, current_session.username)
+		f.ServeHTTP(w, r.WithContext(ctx))
+	})
 }

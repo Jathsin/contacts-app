@@ -21,8 +21,22 @@ type PageData struct {
 	Archiver archiver.Archiver
 }
 
-//Auth obejcts
+// DB objects
+type Contact_db struct {
+	Username string `bson:"username"` // The username of the user who owns this contact
+	ID       int    `bson:"id"`
+	First    string `bson:"first"`
+	Last     string `bson:"last"`
+	Email    string `bson:"email"`
+	Phone    string `bson:"phone"`
+}
 
+type User_db struct {
+	Username string `bson:"username"`
+	Password string `bson:"password"`
+}
+
+// Auth obejcts
 var sessions = map[string]session{}
 
 type session struct {
