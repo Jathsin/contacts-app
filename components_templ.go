@@ -1062,7 +1062,36 @@ func auth_dialog() templ.Component {
 			templ_7745c5c3_Var56 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<button type=\"button\" onclick=\"document.getElementById('demo-dialog-edit-profile').showModal()\" class=\"btn flex flex-row justify-center items-center px-3 p-y-1 max-auto mt-[40px] rounded-[50px]\">sign in</button> <dialog id=\"demo-dialog-edit-profile\" class=\"dialog fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full sm:max-w-[425px] max-h-[612px] m-0 rounded-[15px]\" aria-labelledby=\"demo-dialog-edit-profile-title\" aria-describedby=\"demo-dialog-edit-profile-description\" onclick=\"if (event.target === this) this.close()\"><div class=\"card w-full\"><header><h2>Login to your account</h2><p>Enter your details below to login to your account</p></header><section><form class=\"form grid gap-6\" hx-post=\"/sign-in\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"/contacts\"><div class=\"grid gap-2\"><label for=\"username\">Username</label> <input type=\"text\" id=\"username\" name=\"username\"></div><div class=\"grid gap-2\"><label for=\"password\">Password</label> <input type=\"password\" id=\"password\" name=\"password\"></div><button type=\"submit\" class=\"btn w-full\" hx-post=\"/sign-in\">Login</button></form></section><footer class=\"flex flex-col items-center gap-2\"><p class=\"mt-4 text-center text-sm\">Don't have an account? <a href=\"#\" class=\"underline-offset-4 hover:underline\">Sign up</a></p></footer></div></dialog>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 75, "<button type=\"button\" onclick=\"document.getElementById('auth-dialog').showModal()\" class=\"btn flex flex-row justify-center items-center px-3 p-y-1 max-auto mt-[40px] rounded-[50px]\">sign in</button> <dialog id=\"auth-dialog\" class=\"dialog fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full sm:max-w-[425px] max-h-[612px] m-0 rounded-[15px]\" aria-labelledby=\"auth-dialog-title\" aria-describedby=\"auth-dialog-description\" onclick=\"if (event.target === this) this.close()\"><div class=\"card w-full\"><header><h2>Login to your account</h2><p>Enter your details below to login to your account</p></header><section><form class=\"form grid gap-6\" hx-post=\"/sign-in\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"/contacts\"><div class=\"grid gap-2\"><label for=\"username\">Username</label> <input type=\"text\" id=\"username\" name=\"username\"></div><div class=\"grid gap-2\"><label for=\"password\">Password</label> <input type=\"password\" id=\"password\" name=\"password\"></div><button type=\"submit\" class=\"btn w-full\" hx-post=\"/sign-in\">Login</button></form></section><footer class=\"flex flex-col items-center gap-2\"><p class=\"mt-4 text-center text-sm\">Don't have an account? <a hx-get=\"/register\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"true\" class=\"underline-offset-4 hover:underline\">Sign up</a></p></footer></div></dialog>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		return nil
+	})
+}
+
+func register() templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
+		}
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var57 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var57 == nil {
+			templ_7745c5c3_Var57 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<main class=\"mx-auto max-w-[600px] mb-20\"><div class=\"card w-full\"><header><h2>Register a new account</h2><p>Enter your details below to create a new account</p></header><section><form class=\"form grid gap-6\" hx-post=\"/register\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"/contacts\"><div class=\"grid gap-2\"><label for=\"username\">Username</label> <input type=\"text\" id=\"username\" name=\"username\"></div><div class=\"grid gap-2\"><div class=\"flex items-center gap-2\"><label for=\"password\">Password</label></div><input type=\"password\" id=\"password\" name=\"password\"></div><button type=\"submit\" class=\"btn w-full\">Sign up</button></form></section><footer class=\"flex flex-col items-center gap-2\"><button type=\"button\" hx-get=\"/contacts\" hx-target=\"main\" hx-swap=\"outerHTML\" hx-push-url=\"true\" class=\"btn mt-4 text-center text-sm\">Back</button></footer></div></main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1086,25 +1115,25 @@ func profile_card(username string) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var57 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var57 == nil {
-			templ_7745c5c3_Var57 = templ.NopComponent
+		templ_7745c5c3_Var58 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var58 == nil {
+			templ_7745c5c3_Var58 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 76, "<div class=\"flex flex-row gap-2\" onclick=\"document.getElementById('demo-dialog-edit-profile').showModal()\"><div class=\"flex flex-row flex-wrap items-center gap-12\"><img class=\"size-8 shrink-0 object-cover rounded-lg\" alt=\"@shadcn\" src=\"https://github.com/shadcn.png\"></div><div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 77, "<div class=\"flex flex-row gap-2\" onclick=\"document.getElementById('profile-dialog').showModal()\"><div class=\"flex flex-row flex-wrap items-center gap-12\"><img class=\"size-8 shrink-0 object-cover rounded-lg\" alt=\"@shadcn\" src=\"https://github.com/shadcn.png\"></div><div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var58 string
-		templ_7745c5c3_Var58, templ_7745c5c3_Err = templ.JoinStringErrs(username)
+		var templ_7745c5c3_Var59 string
+		templ_7745c5c3_Var59, templ_7745c5c3_Err = templ.JoinStringErrs(username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 560, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 597, Col: 17}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var58))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var59))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 77, "</div></div><dialog id=\"demo-dialog-edit-profile\" class=\"dialog fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-fit rounded-[15px]\" aria-labelledby=\"demo-dialog-edit-profile-title\" aria-describedby=\"demo-dialog-edit-profile-description\" onclick=\"if (event.target === this) this.close()\"><div class=\"flex justify-center\"><button type=\"button\" class=\"btn-destructive\" hx-post=\"/logout\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"/contacts\">Logout</button></div></dialog>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 78, "</div></div><dialog id=\"profile-dialog\" class=\"dialog fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-fit rounded-[15px]\" aria-labelledby=\"profile-dialog-title\" aria-describedby=\"profile-dialog-description\" onclick=\"if (event.target === this) this.close()\"><div class=\"flex justify-center\"><button type=\"button\" class=\"btn-destructive\" hx-post=\"/logout\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"/contacts\">Logout</button></div></dialog>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

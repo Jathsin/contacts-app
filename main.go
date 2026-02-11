@@ -102,6 +102,10 @@ func main() {
 
 	mux.HandleFunc("POST /logout", logout_handler)
 
+	mux.HandleFunc("GET /register", get_register_handler)
+
+	mux.HandleFunc("POST /register", post_register_handler)
+
 	// json api
 	mux.HandleFunc("GET /api/v1/contacts", get_contacts_handler)
 
@@ -689,6 +693,37 @@ func logout_handler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	templ.Handler(con_boton_tema(index(get_contact_list(1), "", 1, myArchiver, ""), auth_dialog()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+}
+
+func get_register_handler(w http.ResponseWriter, r *http.Request) {
+
+	w.Header().Set("Content-Type", "text/html")
+
+	if r.Header.Get("HX-Request") == "true" {
+		templ.Handler(con_boton_tema(register(), auth_dialog()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	} else {
+		templ.Handler(layout(con_boton_tema(register(), auth_dialog())), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	}
+}
+
+func post_register_handler(w http.ResponseWriter, r *http.Request) {
+
+	username := r.FormValue("username")
+	password := r.FormValue("password")
+
+	// Check if user already exists
+	_, exists := users[username]
+	if exists {
+		http.Error(w, "user already exists", http.StatusBadRequest)
+		log.Error("post_register_handler: user already exists: " + username)
+		return
+	}
+
+	users[username] = password
+
+	log.Info("User registered successfully: " + username)
+
+	templ.Handler(con_boton_tema(index(get_contact_list(1), "", 1, myArchiver, "Account created successfully"), profile_card(username)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 //------------------------------------------------------------------------------

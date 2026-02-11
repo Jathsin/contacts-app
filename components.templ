@@ -519,12 +519,12 @@ templ error_email(err string) {
 
 // AUTH ui
 templ auth_dialog() {
-	<button type="button" onclick="document.getElementById('demo-dialog-edit-profile').showModal()" class="btn flex flex-row justify-center items-center px-3 p-y-1 max-auto mt-[40px] rounded-[50px]">sign in</button>
+	<button type="button" onclick="document.getElementById('auth-dialog').showModal()" class="btn flex flex-row justify-center items-center px-3 p-y-1 max-auto mt-[40px] rounded-[50px]">sign in</button>
 	<dialog
-		id="demo-dialog-edit-profile"
+		id="auth-dialog"
 		class="dialog fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full sm:max-w-[425px] max-h-[612px] m-0 rounded-[15px]"
-		aria-labelledby="demo-dialog-edit-profile-title"
-		aria-describedby="demo-dialog-edit-profile-description"
+		aria-labelledby="auth-dialog-title"
+		aria-describedby="auth-dialog-description"
 		onclick="if (event.target === this) this.close()"
 	>
 		<div class="card w-full">
@@ -546,24 +546,61 @@ templ auth_dialog() {
 				</form>
 			</section>
 			<footer class="flex flex-col items-center gap-2">
-				<p class="mt-4 text-center text-sm">Don't have an account? <a href="#" class="underline-offset-4 hover:underline">Sign up</a></p>
+				<p class="mt-4 text-center text-sm">
+					Don't have an account? <a
+	hx-get="/register"
+	hx-target="body"
+	hx-swap="outerHTML"
+	hx-push-url="true"
+	class="underline-offset-4 hover:underline"
+>Sign up</a>
+				</p>
 			</footer>
 		</div>
 	</dialog>
 }
 
+templ register() {
+	<main class="mx-auto max-w-[600px] mb-20">
+		<div class="card w-full">
+			<header>
+				<h2>Register a new account</h2>
+				<p>Enter your details below to create a new account</p>
+			</header>
+			<section>
+				<form class="form grid gap-6" hx-post="/register" hx-target="body" hx-swap="outerHTML" hx-push-url="/contacts">
+					<div class="grid gap-2">
+						<label for="username">Username</label>
+						<input type="text" id="username" name="username"/>
+					</div>
+					<div class="grid gap-2">
+						<div class="flex items-center gap-2">
+							<label for="password">Password</label>
+						</div>
+						<input type="password" id="password" name="password"/>
+					</div>
+					<button type="submit" class="btn w-full">Sign up</button>
+				</form>
+			</section>
+			<footer class="flex flex-col items-center gap-2">
+				<button type="button" hx-get="/contacts" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn mt-4 text-center text-sm">Back</button>
+			</footer>
+		</div>
+	</main>
+}
+
 templ profile_card(username string) {
-	<div class="flex flex-row gap-2" onclick="document.getElementById('demo-dialog-edit-profile').showModal()">
+	<div class="flex flex-row gap-2" onclick="document.getElementById('profile-dialog').showModal()">
 		<div class="flex flex-row flex-wrap items-center gap-12">
 			<img class="size-8 shrink-0 object-cover rounded-lg" alt="@shadcn" src="https://github.com/shadcn.png"/>
 		</div>
 		<div>{ username }</div>
 	</div>
 	<dialog
-		id="demo-dialog-edit-profile"
+		id="profile-dialog"
 		class="dialog fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-fit rounded-[15px]"
-		aria-labelledby="demo-dialog-edit-profile-title"
-		aria-describedby="demo-dialog-edit-profile-description"
+		aria-labelledby="profile-dialog-title"
+		aria-describedby="profile-dialog-description"
 		onclick="if (event.target === this) this.close()"
 	>
 		<div class="flex justify-center">
