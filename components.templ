@@ -211,7 +211,7 @@ templ contact_table(page int, contact_list []Contact) {
 			<ul class="flex flex-row items-center gap-1">
 				<li>
 					if page > 1 {
-						<a href="/contacts?page={{ add .Page -1 }}" class="btn-ghost">
+						<a hx-get={ fmt.Sprintf("/contacts?page=%d", page-1) } hx-target="main" hx-swap="outerHTML" class="btn-ghost">
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								width="24"
@@ -230,7 +230,7 @@ templ contact_table(page int, contact_list []Contact) {
 				</li>
 				<li>
 					if len(contact_list) == 10 {
-						<a href={ fmt.Sprintf("/contacts?page=%d", page+1) } class="btn-ghost">
+						<a hx-get={ fmt.Sprintf("/contacts?page=%d", page+1) } hx-target="main" hx-swap="outerHTML" class="btn-ghost">
 							Next 
 							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
 						</a>
@@ -467,7 +467,7 @@ templ edit_contact(c Contact) {
 				<button type="submit" class="btn-outline mt-[20px] w-17">Save</button>
 				<div class="flex flex-row mt-[10px]">
 					<p>
-						<a hx-get="/contacts/" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn mr-[10px]">Back</a>
+						<a hx-get="/contacts" hx-target="main" hx-swap="outerHTML" hx-push-url="/contacts" class="btn mr-[10px]">Back</a>
 					</p>
 					<button
 						class="btn-destructive"
@@ -582,9 +582,6 @@ templ register() {
 					<button type="submit" class="btn w-full">Sign up</button>
 				</form>
 			</section>
-			<footer class="flex flex-col items-center gap-2">
-				<button type="button" hx-get="/contacts" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn mt-4 text-center text-sm">Back</button>
-			</footer>
 		</div>
 	</main>
 }

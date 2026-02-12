@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"hypermedia/archiver"
 	"log/slog"
@@ -62,7 +61,9 @@ func main() {
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	// hypermedia api
-	mux.HandleFunc("GET /", redirect_handler)
+	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/register", http.StatusFound)
+	})
 
 	mux.HandleFunc("GET /contacts", contact_query_handler)
 
@@ -95,10 +96,6 @@ func main() {
 	// Auth api
 
 	mux.HandleFunc("POST /sign-in", sign_in_handler)
-
-	mux.HandleFunc("GET /welcome", welcome_handler)
-
-	mux.HandleFunc("POST /refresh", refresh_handler)
 
 	mux.HandleFunc("POST /logout", logout_handler)
 
@@ -134,14 +131,6 @@ func main() {
 //------------------------------------------------------------------------------
 // Hypermedia Api
 //------------------------------------------------------------------------------
-
-func redirect_handler(w http.ResponseWriter, r *http.Request) {
-	http.Redirect(w, r, "/contacts", http.StatusFound)
-}
-
-func ForceError() (string, error) {
-	return "", errors.New("error forzado desde helpers")
-}
 
 // /contacts?q={id}
 func contact_query_handler(w http.ResponseWriter, r *http.Request) {
@@ -583,7 +572,7 @@ func sign_in_handler(w http.ResponseWriter, r *http.Request) {
 
 	// create session
 	session_token := uuid.NewString()
-	expires_at := time.Now().Add(120 * time.Second)
+	expires_at := time.Now().Add(1 * time.Minute)
 	sessions[session_token] = session{
 		username: username,
 		expiry:   expires_at,
@@ -597,80 +586,6 @@ func sign_in_handler(w http.ResponseWriter, r *http.Request) {
 	})
 
 	templ.Handler(con_boton_tema(index(get_contact_list(1), "", 1, myArchiver, ""), profile_card(username)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
-}
-
-func welcome_handler(w http.ResponseWriter, r *http.Request) {
-
-	// check session validity
-	cookie, err := r.Cookie("session_token")
-	if err != nil {
-		if err == http.ErrNoCookie {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// does the session exist?
-	session_token := cookie.Value
-	current_session, exists := sessions[session_token]
-	if !exists {
-		http.Error(w, "session does not exist", http.StatusUnauthorized)
-		return
-	}
-	if current_session.is_expired() {
-		delete(sessions, session_token)
-		http.Error(w, "session is expired", http.StatusUnauthorized)
-		return
-	}
-
-	w.Write([]byte(fmt.Sprintf("Welcome %s!", current_session.username)))
-}
-
-// Prevents user from login in everytime a session expires
-func refresh_handler(w http.ResponseWriter, r *http.Request) {
-
-	// check session validity
-	cookie, err := r.Cookie("session_token")
-	if err != nil {
-		if err == http.ErrNoCookie {
-			http.Error(w, err.Error(), http.StatusUnauthorized)
-			return
-		}
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// does the session exist?
-	session_token := cookie.Value
-	current_session, exists := sessions[session_token]
-	if !exists {
-		http.Error(w, "session does not exist", http.StatusUnauthorized)
-		return
-	}
-	if current_session.is_expired() {
-		delete(sessions, session_token)
-		http.Error(w, "session is expired", http.StatusUnauthorized)
-		return
-	}
-	// End of boilerplate code for validating session cookie
-
-	new_session_token := uuid.NewString()
-	expires_at := time.Now().Add(120 * time.Second)
-
-	delete(sessions, session_token)
-
-	sessions[new_session_token] = session{
-		username: current_session.username,
-		expiry:   expires_at,
-	}
-
-	http.SetCookie(w, &http.Cookie{
-		Name:    "session_token",
-		Value:   new_session_token,
-		Expires: expires_at,
-	})
 }
 
 func logout_handler(w http.ResponseWriter, r *http.Request) {
@@ -692,7 +607,7 @@ func logout_handler(w http.ResponseWriter, r *http.Request) {
 		Expires: time.Now(),
 	})
 
-	templ.Handler(con_boton_tema(index(get_contact_list(1), "", 1, myArchiver, ""), auth_dialog()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	templ.Handler(con_boton_tema(register(), auth_dialog()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 func get_register_handler(w http.ResponseWriter, r *http.Request) {
@@ -722,6 +637,17 @@ func post_register_handler(w http.ResponseWriter, r *http.Request) {
 	users[username] = password
 
 	log.Info("User registered successfully: " + username)
+
+	// Send cookie to browser
+	session_token := uuid.NewString()
+	expires_at := time.Now().Add(120 * time.Second)
+	sessions[session_token] = session{username: username, expiry: expires_at}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:    "session_token",
+		Value:   session_token,
+		Expires: expires_at,
+	})
 
 	templ.Handler(con_boton_tema(index(get_contact_list(1), "", 1, myArchiver, "Account created successfully"), profile_card(username)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
@@ -1124,14 +1050,15 @@ func auth(f http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
+		if r.URL.Path == "/" || r.URL.Path == "/sign-in" || r.URL.Path == "/register" || strings.HasPrefix(r.URL.Path, "/static/") {
+			f.ServeHTTP(w, r)
+			return
+		}
+
 		// check session validity
 		cookie, err := r.Cookie("session_token")
 		if err != nil {
-			if err == http.ErrNoCookie {
-				http.Error(w, err.Error(), http.StatusUnauthorized)
-				return
-			}
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			http.Redirect(w, r, "/register", http.StatusSeeOther)
 			return
 		}
 
@@ -1139,12 +1066,30 @@ func auth(f http.Handler) http.Handler {
 		session_token := cookie.Value
 		current_session, exists := sessions[session_token]
 		if !exists {
-			http.Error(w, "session does not exist", http.StatusUnauthorized)
+			http.Redirect(w, r, "/register", http.StatusSeeOther)
 			return
 		}
-		if current_session.is_expired() {
+
+		if time.Until(current_session.expiry) < 30*time.Second {
+
+			fmt.Println("hola")
+			// extend session
+			expires_at := time.Now().Add(120 * time.Second)
+
+			sessions[session_token] = session{
+				username: current_session.username,
+				expiry:   expires_at,
+			}
+
+			http.SetCookie(w, &http.Cookie{
+				Name:    "session_token",
+				Value:   session_token,
+				Expires: expires_at,
+			})
+
+		} else if current_session.is_expired() {
 			delete(sessions, session_token)
-			http.Error(w, "session is expired", http.StatusUnauthorized)
+			http.Redirect(w, r, "/register", http.StatusSeeOther)
 			return
 		}
 
