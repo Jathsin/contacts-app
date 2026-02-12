@@ -7,3 +7,23 @@ services:
     restart: always
 
     pull_policy: never # para que no intente descargar imagen de Docker Hub, usamos imágenes locales
+
+  mongo:
+    image: mongo:latest # pulled from Docker Hub
+
+    ports:
+      - "27017:27017" # optional: expose for local tooling
+    volumes:
+      - mongo-data:/data/db
+
+    healthcheck:
+      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+    pull_policy: always
+
+volumes:
+  mongo-data:

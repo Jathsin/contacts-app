@@ -1,25 +1,20 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
-	"fmt"
 	"hypermedia/archiver"
 	"log/slog"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
+	et "braces.dev/errtrace"
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
 )
 
 var log *slog.Logger
-
-var contacts []Contact
-var contacts_data []byte
 
 var myArchiver archiver.Archiver
 
@@ -41,15 +36,24 @@ func templ_error(r *http.Request, err error) http.Handler {
 	})
 }
 
+func init_app() (app, error) {
+	client, err := get_mongo_client()
+	if err != nil {
+		return app{}, et.Wrap(err)
+	}
+
+	return app{mongo_client: client}, nil
+}
+
 func main() {
 
 	// Init logger
 	log = slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
-	// Load contacts
-	err := load_contacts()
+	app, err := init_app()
 	if err != nil {
-		log.Error("Error in load_contacts()", "error", err)
+		log.Error("Error initializing app", "error", err)
+		return
 	}
 
 	// Set default archvier status for user
@@ -57,7 +61,6 @@ func main() {
 
 	mux := http.NewServeMux()
 
-	// TODO: fix serving spinning circles
 	mux.Handle("GET /static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	// hypermedia api
@@ -65,54 +68,54 @@ func main() {
 		http.Redirect(w, r, "/register", http.StatusFound)
 	})
 
-	mux.HandleFunc("GET /contacts", contact_query_handler)
+	mux.HandleFunc("GET /contacts", app.contact_query_handler)
 
-	mux.HandleFunc("GET /contacts/{id}", contact_id_handler)
+	mux.HandleFunc("GET /contacts/{id}", app.contact_id_handler)
 
-	mux.HandleFunc("GET /contacts/new", get_add_contact_handler)
+	mux.HandleFunc("GET /contacts/new", app.get_add_contact_handler)
 
-	mux.HandleFunc("POST /contacts/new", post_add_contact_handler)
+	mux.HandleFunc("POST /contacts/new", app.post_add_contact_handler)
 
-	mux.HandleFunc("GET /contacts/{id}/edit", get_edit_contact_handler)
+	mux.HandleFunc("GET /contacts/{id}/edit", app.get_edit_contact_handler)
 
-	mux.HandleFunc("POST /contacts/{id}/edit", post_edit_contact_handler)
+	mux.HandleFunc("POST /contacts/{id}/edit", app.post_edit_contact_handler)
 
-	mux.HandleFunc("DELETE /contacts/{id}", delete_contact_handler)
+	mux.HandleFunc("DELETE /contacts/{id}", app.delete_contact_handler)
 
-	mux.HandleFunc("DELETE /contacts", delete_multiple_contacts_handler)
+	mux.HandleFunc("DELETE /contacts", app.delete_multiple_contacts_handler)
 
-	mux.HandleFunc("GET /contacts/count", count_contacts_handler)
+	mux.HandleFunc("GET /contacts/count", app.count_contacts_handler)
 
-	mux.HandleFunc("GET /contacts/{id}/email", validate_email_handler)
+	mux.HandleFunc("GET /contacts/{id}/email", app.validate_email_handler)
 
-	mux.HandleFunc("POST /contacts/archive", post_archive_handler)
+	mux.HandleFunc("POST /contacts/archive", app.post_archive_handler)
 
-	mux.HandleFunc("GET /contacts/archive", get_archive_handler)
+	mux.HandleFunc("GET /contacts/archive", app.get_archive_handler)
 
-	mux.HandleFunc("DELETE /contacts/archive", delete_archive_handler)
+	mux.HandleFunc("DELETE /contacts/archive", app.delete_archive_handler)
 
-	mux.HandleFunc("GET /contacts/archive/file", archive_file_handler)
+	mux.HandleFunc("GET /contacts/archive/file", app.archive_file_handler)
 
 	// Auth api
 
-	mux.HandleFunc("POST /sign-in", sign_in_handler)
+	mux.HandleFunc("POST /sign-in", app.sign_in_handler)
 
-	mux.HandleFunc("POST /logout", logout_handler)
+	mux.HandleFunc("POST /logout", app.logout_handler)
 
-	mux.HandleFunc("GET /register", get_register_handler)
+	mux.HandleFunc("GET /register", app.get_register_handler)
 
-	mux.HandleFunc("POST /register", post_register_handler)
+	mux.HandleFunc("POST /register", app.post_register_handler)
 
 	// json api
-	mux.HandleFunc("GET /api/v1/contacts", get_contacts_handler)
+	mux.HandleFunc("GET /api/v1/contacts", app.get_contacts_handler)
 
-	mux.HandleFunc("POST /api/v1/contacts", post_contacts_handler)
+	mux.HandleFunc("POST /api/v1/contacts", app.post_contacts_handler)
 
-	mux.HandleFunc("GET /api/v1/contacts/{id}", get_contact_handler)
+	mux.HandleFunc("GET /api/v1/contacts/{id}", app.get_contact_handler)
 
-	mux.HandleFunc("PUT /api/v1/contacts/{id}", put_contact_handler)
+	mux.HandleFunc("PUT /api/v1/contacts/{id}", app.put_contact_handler)
 
-	mux.HandleFunc("DELETE /api/v1/contacts/{id}", delete_contact_handler_json)
+	mux.HandleFunc("DELETE /api/v1/contacts/{id}", app.delete_contact_handler_json)
 
 	// Start server
 	server := http.Server{
@@ -133,7 +136,7 @@ func main() {
 //------------------------------------------------------------------------------
 
 // /contacts?q={id}
-func contact_query_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
 	q := r.URL.Query().Get("q")
 
@@ -146,18 +149,24 @@ func contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		if page <= 0 {
 			page = 1
 		}
-		contact_list := get_contact_list(page)
+
+		contact_list, err := app.get_contact_page(page, get_username(r.Context()))
+		if err != nil {
+			http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+			log.Error("contact_query_handler: error in get_contact_list", "error", err)
+			return
+		}
 
 		if r.Header.Get("HX-Request") == "true" {
 			templ.Handler(index(contact_list, "", page, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		} else {
-			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver, ""), auth_dialog())), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver, ""), get_auth_or_profile(r))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		}
 		return
 	}
 
 	// Search for specific contact
-	contact_results, err := find_contacts(q)
+	contact_results, err := find_contacts(app.mongo_client, get_username(r.Context()), q)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
 		log.Error("contact_query_handler: error in find_contact", "error", err)
@@ -169,7 +178,7 @@ func contact_query_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /contacts/{id}
-func contact_id_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 
@@ -186,10 +195,17 @@ func contact_id_handler(w http.ResponseWriter, r *http.Request) {
 
 		// Show contact information depending on trigger
 		// var err error
+		contact_list, err := app.get_contact_page(page, get_username(r.Context()))
+		if err != nil {
+			http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+			log.Error("contact_id_handler: error in get_contact_list", "error", err)
+			return
+		}
+
 		if r.Header.Get("HX-Trigger") == "search" {
-			templ.Handler(rows(get_contact_list(page)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+			templ.Handler(rows(contact_list), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		} else {
-			templ.Handler(index(get_contact_list(page), "", page, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+			templ.Handler(index(contact_list, "", page, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		}
 
 		return
@@ -204,7 +220,7 @@ func contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Search for specific contact
-	c, err := find_contact_id(id_int)
+	c, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
 		log.Error("contact_id_handler: error in find_contact", "error", err)
@@ -215,7 +231,7 @@ func contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		templ.Handler(show(*c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(show(*c), auth_dialog())), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(show(*c), get_auth_or_profile(r))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 
 	// s := show(*c)
@@ -229,7 +245,7 @@ func contact_id_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /contacts/new
-func get_add_contact_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) get_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 
@@ -250,14 +266,18 @@ func get_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /contacts/new
-func post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Compute new id
+	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("post_add_contact_handler: error in get_contacts_from_user", "error", err)
+		return
+	}
 	max_id := 0
-	for _, c := range contacts {
-		if c.ID > max_id {
-			max_id = c.ID
-		}
+	if contacts != nil {
+		max_id = contacts[len(contacts)-1].ID
 	}
 
 	// Get form values
@@ -270,7 +290,7 @@ func post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 		Errors: make(map[string]string),
 	}
 
-	email_error := validate_email(-1, c.Email)
+	email_error := validate_email(-1, c.Email, contacts)
 	if email_error != "" {
 		// We must check this in order to keep the map length to zero when
 		// no errors are found
@@ -288,13 +308,25 @@ func post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 	if len(c.Errors) == 0 {
-		// Add contact to contacts
-		contacts = append(contacts, c)
+		// Insert contact in DB
+		err := insert_contact(app.mongo_client, c, get_username(r.Context()))
+		if err != nil {
+			http.Error(w, "Error inserting contact in DB", http.StatusInternalServerError)
+			log.Error("post_add_contact_handler: error in insert_contact()", "error", err)
+			return
+		}
 
 		log.Info("Contact added successfully")
 
+		contact_list, err := app.get_contact_page(1, get_username(r.Context()))
+		if err != nil {
+			http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+			log.Error("post_add_contact_handler: error in get_contact_list", "error", err)
+			return
+		}
+
 		// Inform user
-		templ.Handler(index(get_contact_list(1), "", 1, myArchiver, SUCCESS), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(index(contact_list, "", 1, myArchiver, SUCCESS), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 
 		return
 	}
@@ -305,7 +337,7 @@ func post_add_contact_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // GET /contacts/{id}/edit
-func get_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) get_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 
@@ -318,7 +350,7 @@ func get_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Search for contact to edit
-	c, err := find_contact_id(id_int)
+	c, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
 		log.Error("edit_contact_get_handler: error in find_contact", "error", err)
@@ -328,12 +360,12 @@ func get_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		templ.Handler(edit_contact(*c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(edit_contact(*c), auth_dialog())), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(edit_contact(*c), get_auth_or_profile(r))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 }
 
 // POST /contacts/{id}/edit
-func post_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) post_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -354,7 +386,14 @@ func post_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 		Errors: make(map[string]string),
 	}
 
-	email_error := validate_email(id_int, c.Email)
+	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("edit_contact_post_handler: error in get_contacts_from_user_contacts_db", "error", err)
+		return
+	}
+
+	email_error := validate_email(id_int, c.Email, contacts)
 	if email_error != "" {
 		// We must check this in order to keep the map length to zero when
 		// no errors are found
@@ -371,24 +410,17 @@ func post_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(c.Errors) == 0 {
-		// Search for c to edit
-		contact, err := find_contact_id(id_int)
+		// Update contact in DB
+		err := update_contact(app.mongo_client, c, get_username(r.Context()))
 		if err != nil {
-			http.Error(w, "Error, contact not found", http.StatusBadRequest)
-			log.Error("post_edit_contact_handler: error in find_contact", "error", err)
+			http.Error(w, "Error updating contact in DB", http.StatusInternalServerError)
+			log.Error("edit_contact_post_handler: error in update_contact()", "error", err)
 			return
 		}
 
-		// Replace with editted data
-		contact.Email = c.Email
-		contact.First = c.First
-		contact.Last = c.Last
-		contact.Phone = c.Phone
-		contact.Errors = c.Errors
-
 		log.Info("Contact edited successfully")
 
-		templ.Handler(show(*contact), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(show(c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		return
 	}
 
@@ -397,7 +429,7 @@ func post_edit_contact_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // DELETE /contacts/{id}/edit
-func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -408,26 +440,40 @@ func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete contact
+	contact, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
+	if err != nil {
+		http.Error(w, "Error finding contact", http.StatusInternalServerError)
+		log.Error("delete_contact_handler: error in find_contact_id", "error", err)
+		return
+	}
+	if contact != nil {
 
-	for i, c := range contacts {
-		if c.ID == id_int {
-			// Remove the contact at index i
-			contacts = append(contacts[:i], contacts[i+1:]...)
-
-			log.Info("Contact deleted successfully")
-
-			// Tell htmx clients that contacts changed so widgets like the count can refresh.
-			w.Header().Set("HX-Trigger", "contacts-changed")
-
-			if r.Header.Get("HX-Trigger") == "delete-btn" {
-				templ.Handler(index(get_contact_list(1), "", 1, myArchiver, DELETE), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
-				http.Redirect(w, r, "/contacts", http.StatusSeeOther)
-			}
-
-			// We do not want to render anything
+		// Delete contact
+		err = delete_contact(app.mongo_client, get_username(r.Context()), id_int)
+		if err != nil {
+			http.Error(w, "Error deleting contact", http.StatusInternalServerError)
+			log.Error("delete_contact_handler: error in delete_contact", "error", err)
 			return
 		}
+
+		log.Info("Contact deleted successfully")
+
+		// Tell htmx clients that contacts changed so widgets like the count can refresh.
+		w.Header().Set("HX-Trigger", "contacts-changed")
+
+		if r.Header.Get("HX-Trigger") == "delete-btn" {
+
+			contacts_list, err := app.get_contact_page(1, get_username(r.Context()))
+			if err != nil {
+				http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+				log.Error("delete_contact_handler: error in get_contact_list", "error", err)
+				return
+			}
+			templ.Handler(index(contacts_list, "", 1, myArchiver, DELETE), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+			http.Redirect(w, r, "/contacts", http.StatusSeeOther)
+		}
+		// We do not want to render anything
+		return
 	}
 
 	// We cannot delete contact, which should always be possible form this endpoint
@@ -436,11 +482,19 @@ func delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /contacts/count
-func count_contacts_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 	time.Sleep(1 * time.Second)
+
+	contacts, err := get_user_contacts_db(app.mongo_client, get_username(r.Context()))
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("count_contacts_handler: error in get_contacts_from_user", "error", err)
+		return
+	}
 	count := len(contacts)
-	_, err := w.Write([]byte(strconv.Itoa(count) + " total Contacts"))
+
+	_, err = w.Write([]byte(strconv.Itoa(count) + " total Contacts"))
 	if err != nil {
 		http.Error(w, "Error, could not write response", http.StatusInternalServerError)
 		log.Error("count_contacts_handler: error in  w.Write()", "error", err)
@@ -449,7 +503,7 @@ func count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // DELETE /contacts
-func delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse ids
 	err := r.ParseForm()
@@ -475,20 +529,28 @@ func delete_multiple_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 	// Delete selected contacts
 	for _, id_int := range ids_int {
-		for i, c := range contacts {
-			if c.ID == id_int {
-				// Remove the contact at index i
-				contacts = append(contacts[:i], contacts[i+1:]...)
-			}
+		err = delete_contact(app.mongo_client, get_username(r.Context()), id_int)
+		if err != nil {
+			http.Error(w, "Error deleting contact with id "+strconv.Itoa(id_int), http.StatusInternalServerError)
+			log.Error("delete_multiple_contacts_handler: error in delete_contact", "error", err, "id", id_int)
+			return
 		}
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	templ.Handler(index(get_contact_list(1), "", 1, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+
+	contact_list, err := app.get_contact_page(1, get_username(r.Context()))
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("delete_multiple_contacts_handler: error in get_contact_list", "error", err)
+		return
+	}
+
+	templ.Handler(index(contact_list, "", 1, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // /contacts/{id}/{email}
-func validate_email_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -499,15 +561,22 @@ func validate_email_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := find_contact_id(id_int)
+	c, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
 		log.Error("validate_email_handler: error in find_contact", "error", err)
 		return
 	}
+
 	// Check email is unique
+	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("validate_email_handler: error in get_contacts_from_user", "error", err)
+		return
+	}
 	email := r.URL.Query().Get("email")
-	c.Errors["email"] = validate_email(id_int, email)
+	c.Errors["email"] = validate_email(id_int, email, contacts)
 
 	w.Header().Set("Content-Type", "text/html")
 
@@ -515,7 +584,7 @@ func validate_email_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /contacts/archive
-func post_archive_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) post_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 	time.Sleep(500 * time.Millisecond)
 
@@ -528,27 +597,34 @@ func post_archive_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /contacts/archive
-func get_archive_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) get_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 	templ.Handler(archive_ui(myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // DELETE /contacts/archive
-func delete_archive_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) delete_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 	myArchiver.Reset()
 	templ.Handler(archive_ui(myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // /contacts/archive/file
-func archive_file_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Disposition", `attachment; filename="contacts.json"`)
 	w.Header().Set("Content-Type", "application/json")
 
+	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("archive_file_handler: error in get_contacts_from_user_contacts_db", "error", err)
+		return
+	}
+
 	json_file := myArchiver.Archive_file(contacts)
 
-	_, err := w.Write(json_file.([]byte))
+	_, err = w.Write(json_file.([]byte))
 	if err != nil {
 		http.Error(w, "Error writing response", http.StatusInternalServerError)
 		log.Error("archive_file_handler: error in w.Write(json_data)", "error", err)
@@ -558,7 +634,8 @@ func archive_file_handler(w http.ResponseWriter, r *http.Request) {
 
 // AUTH HANDELRS
 
-func sign_in_handler(w http.ResponseWriter, r *http.Request) {
+// POST /sign-in
+func (app *app) sign_in_handler(w http.ResponseWriter, r *http.Request) {
 
 	username := r.FormValue("username")
 	password := r.FormValue("password")
@@ -585,10 +662,18 @@ func sign_in_handler(w http.ResponseWriter, r *http.Request) {
 		Expires: expires_at,
 	})
 
-	templ.Handler(con_boton_tema(index(get_contact_list(1), "", 1, myArchiver, ""), profile_card(username)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	contacts_list, err := app.get_contact_page(1, username)
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("sign_in_handler: error in get_contact_list", "error", err)
+		return
+	}
+
+	templ.Handler(con_boton_tema(index(contacts_list, "", 1, myArchiver, ""), profile_card(username)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
-func logout_handler(w http.ResponseWriter, r *http.Request) {
+// POST /logout
+func (app *app) logout_handler(w http.ResponseWriter, r *http.Request) {
 	// check session validity
 	cookie, err := r.Cookie("session_token")
 	if err != nil {
@@ -610,27 +695,42 @@ func logout_handler(w http.ResponseWriter, r *http.Request) {
 	templ.Handler(con_boton_tema(register(), auth_dialog()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
-func get_register_handler(w http.ResponseWriter, r *http.Request) {
+// GET /register
+func (app *app) get_register_handler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "text/html")
 
 	if r.Header.Get("HX-Request") == "true" {
-		templ.Handler(con_boton_tema(register(), auth_dialog()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(con_boton_tema(register(), get_auth_or_profile(r)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(register(), auth_dialog())), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(register(), get_auth_or_profile(r))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 }
 
-func post_register_handler(w http.ResponseWriter, r *http.Request) {
+// POST /register
+func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
 
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
 	// Check if user already exists
-	_, exists := users[username]
-	if exists {
-		http.Error(w, "user already exists", http.StatusBadRequest)
+	user, err := find_user(app.mongo_client, username)
+	if err != nil {
+		http.Error(w, "Error checking user existence", http.StatusInternalServerError)
+		log.Error("post_register_handler: error in find_user", "error", err)
+		return
+	}
+	if user != nil {
+		http.Error(w, "User already exists", http.StatusBadRequest)
 		log.Error("post_register_handler: user already exists: " + username)
+		return
+	}
+
+	// insert user in DB
+	err = insert_user(app.mongo_client, username, password)
+	if err != nil {
+		http.Error(w, "Error registering user", http.StatusInternalServerError)
+		log.Error("post_register_handler: error in insert_user_db", "error", err)
 		return
 	}
 
@@ -649,7 +749,13 @@ func post_register_handler(w http.ResponseWriter, r *http.Request) {
 		Expires: expires_at,
 	})
 
-	templ.Handler(con_boton_tema(index(get_contact_list(1), "", 1, myArchiver, "Account created successfully"), profile_card(username)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	contact_list, err := app.get_contact_page(1, username)
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("post_register_handler: error in get_contact_list", "error", err)
+		return
+	}
+	templ.Handler(con_boton_tema(index(contact_list, "", 1, myArchiver, "Account created successfully"), profile_card(username)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 //------------------------------------------------------------------------------
@@ -666,7 +772,14 @@ type error_response struct {
 }
 
 // GET /api/v1/contacts
-func get_contacts_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) get_contacts_handler(w http.ResponseWriter, r *http.Request) {
+
+	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("get_contacts_handler: error in get_user_contacts", "error", err)
+		return
+	}
 
 	jsonData, err := json.Marshal(contacts)
 	if err != nil {
@@ -685,11 +798,18 @@ func get_contacts_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /api/v1/contacts
-func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) post_contacts_handler(w http.ResponseWriter, r *http.Request) {
+
+	user_contacts_db, err := get_user_contacts_db(app.mongo_client, get_username(r.Context()))
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("post_contacts_handler: error in get_contacts_from_user", "error", err)
+		return
+	}
 
 	// Get form values
 	c := Contact{
-		ID:     contacts[len(contacts)-1].ID + 1,
+		ID:     user_contacts_db[len(user_contacts_db)-1].ID + 1,
 		First:  r.FormValue("first_name"),
 		Last:   r.FormValue("last_name"),
 		Email:  r.FormValue("email"),
@@ -697,7 +817,19 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 		Errors: make(map[string]string),
 	}
 
-	email_error := validate_email(-1, c.Email)
+	// We need to convert from Contact_db to Contact in order to use the validate_email function
+	var contacts []Contact
+	for _, c := range user_contacts_db {
+		contacts = append(contacts, Contact{
+			ID:    c.ID,
+			First: c.First,
+			Last:  c.Last,
+			Email: c.Email,
+			Phone: c.Phone,
+		})
+	}
+
+	email_error := validate_email(-1, c.Email, contacts)
 	if email_error != "" {
 		// We must check this in order to keep the map length to zero when
 		// no errors are found
@@ -716,7 +848,12 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if len(c.Errors) == 0 {
-		contacts = append(contacts, c)
+		err := insert_contact(app.mongo_client, c, get_username(r.Context()))
+		if err != nil {
+			http.Error(w, "Error inserting contact in DB", http.StatusInternalServerError)
+			log.Error("post_contacts_handler: error in insert_contact()", "error", err)
+			return
+		}
 
 		// Inform about the request's success
 		log.Info("Contact added successfully")
@@ -724,7 +861,7 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 			"Contact added successfully",
 		}
 		json_success_response, _ := json.Marshal(s)
-		_, err := w.Write(json_success_response)
+		_, err = w.Write(json_success_response)
 		if err != nil {
 			http.Error(w, "Could not show error on screen", http.StatusInternalServerError)
 			log.Error("post_contacts_handler: error in w.Write(json_success_response)", "error", err)
@@ -754,7 +891,7 @@ func post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // /GET /api/v1/contacts/{id}
-func get_contact_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) get_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 
@@ -767,7 +904,7 @@ func get_contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Search for specific contact
-	c, err := find_contact_id(id_int)
+	c, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
 		log.Error("get_contact_handler: error in find_contact", "error", err)
@@ -788,7 +925,7 @@ func get_contact_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // PUT /api/v1/contacts
-func put_contact_handler(w http.ResponseWriter, r *http.Request) {
+func (app *app) put_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -809,7 +946,14 @@ func put_contact_handler(w http.ResponseWriter, r *http.Request) {
 		Errors: make(map[string]string),
 	}
 
-	email_error := validate_email(-1, c.Email)
+	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
+	if err != nil {
+		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		log.Error("put_contact_handler: error in get_contacts_from_user_contacts_db", "error", err)
+		return
+	}
+
+	email_error := validate_email(-1, c.Email, contacts)
 	if email_error != "" {
 		c.Errors["email"] = email_error
 	}
@@ -827,7 +971,7 @@ func put_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	if len(c.Errors) == 0 {
 		// Search for c to edit
-		contact, err := find_contact_id(id_int)
+		contact, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 		if err != nil {
 			http.Error(w, "Error, contact not found", http.StatusBadRequest)
 			log.Error("put_contact_handler: error in find_contact", "error", err)
@@ -879,7 +1023,7 @@ func put_contact_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // DELETE /api/v1/contacts/{id}
-func delete_contact_handler_json(w http.ResponseWriter, r *http.Request) {
+func (app *app) delete_contact_handler_json(w http.ResponseWriter, r *http.Request) {
 
 	id_string := r.PathValue("id")
 	// Parse id
@@ -891,26 +1035,36 @@ func delete_contact_handler_json(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete contact
-	for i, c := range contacts {
-		if c.ID == id_int {
-			// Remove the contact at index i
-			contacts = append(contacts[:i], contacts[i+1:]...)
+	contact, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
+	if err != nil {
+		http.Error(w, "Error finding contact", http.StatusInternalServerError)
+		log.Error("delete_contact_handler: error in find_contact_id", "error", err)
+		return
+	}
 
-			// Inform the user of the request's success
-			log.Info("Contact deleted succesfully")
-			s := success_response{
-				"Contact deleted succesfully",
-			}
-			json_success_response, _ := json.Marshal(s)
-			w.WriteHeader(http.StatusBadRequest)
-			_, err := w.Write(json_success_response)
-			if err != nil {
-				http.Error(w, "Could not show error on screen", http.StatusBadRequest)
-				log.Error("delete_contact_handler: error in w.Write(json_success_response)", "error", err)
-				return
-			}
+	if contact != nil {
+		err = delete_contact(app.mongo_client, get_username(r.Context()), id_int)
+		if err != nil {
+			http.Error(w, "Error deleting contact", http.StatusInternalServerError)
+			log.Error("delete_contact_handler: error in delete_contact", "error", err)
 			return
 		}
+
+		// Inform the user of the request's success
+		log.Info("Contact deleted succesfully")
+		s := success_response{
+			"Contact deleted succesfully",
+		}
+		json_success_response, _ := json.Marshal(s)
+		_, err := w.Write(json_success_response)
+		if err != nil {
+			http.Error(w, "Could not show error on screen", http.StatusBadRequest)
+			log.Error("delete_contact_handler: error in w.Write(json_success_response)", "error", err)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		return
 	}
 
 	// Inform about the response's failure
@@ -930,171 +1084,4 @@ func delete_contact_handler_json(w http.ResponseWriter, r *http.Request) {
 
 	http.Error(w, "Error deleting contact", http.StatusInternalServerError)
 	log.Error("delete_contact: contact not found")
-}
-
-// -----------------------------------------------------------------------------
-// AUXILIARY FUNCTIONS
-
-func load_contacts() error {
-
-	var err error
-	contacts_data, err = os.ReadFile("contacts.json")
-	if err != nil {
-		return fmt.Errorf("load_contacts: error in osReadFile: %w", err)
-	}
-
-	err = json.Unmarshal(contacts_data, &contacts)
-	if err != nil {
-		return fmt.Errorf("load_contacts: error in json.Unmarhsall: %w", err)
-	}
-
-	return nil
-}
-
-func find_contact_id(id int) (*Contact, error) {
-	for i := range contacts {
-		if contacts[i].ID == id {
-			return &contacts[i], nil
-		}
-	}
-	return nil, fmt.Errorf("find_contact_id: contact not found")
-}
-
-func find_contacts(q string) ([]Contact, error) {
-	q = strings.TrimSpace(q)
-	if q == "" {
-		return nil, fmt.Errorf("find_contacts: empty query")
-	}
-
-	var results []Contact
-
-	// If q is an integer, try ID match first
-	if id, err := strconv.Atoi(q); err == nil {
-		for i := range contacts {
-			if contacts[i].ID == id {
-				results = append(results, contacts[i])
-			}
-		}
-		return results, nil
-	}
-
-	// perform string search
-	qLower := strings.ToLower(q)
-	for i := range contacts {
-		c := contacts[i]
-		if strings.Contains(strings.ToLower(c.First), qLower) ||
-			strings.Contains(strings.ToLower(c.Last), qLower) ||
-			strings.Contains(strings.ToLower(c.Email), qLower) ||
-			strings.Contains(strings.ToLower(c.Phone), qLower) {
-
-			results = append(results, c)
-		}
-	}
-
-	if len(results) == 0 {
-		return nil, fmt.Errorf("find_contacts: contact not found")
-	}
-	return results, nil
-}
-
-func get_contact_list(page int) []Contact {
-
-	p := page - 1
-	limit := p*10 + 10
-	var contact_set []Contact
-	for i := p * 10; i < limit && i < len(contacts); i++ {
-		contact_set = append(contact_set, contacts[i])
-	}
-
-	return contact_set
-}
-
-func validate_email(id int, email string) string {
-
-	if email == "" {
-		return "Email is empty"
-	}
-	for _, c := range contacts {
-		if c.ID != id && c.Email == email {
-			return "Email must be unique"
-		}
-	}
-	return ""
-}
-
-// MIDDLEWARE ----------------------------------------------------------------------
-
-func logging(f http.Handler) http.Handler {
-
-	return (http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := uuid.New().String()
-		log := log.With("request_id", id)
-
-		log.Info("NewRequest",
-			"method", r.Method, "url", r.URL.Path,
-			"remoteAddress", r.RemoteAddr)
-
-		ctx := context.WithValue(r.Context(), "log", log)
-		r = r.WithContext(ctx)
-		// Calls actual handler
-		f.ServeHTTP(w, r)
-	}))
-}
-
-// It must be done this way to avoid collisions, it is an inherent Go practice
-type ctx_key string
-
-const user_key ctx_key = "username"
-
-func auth(f http.Handler) http.Handler {
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		if r.URL.Path == "/" || r.URL.Path == "/sign-in" || r.URL.Path == "/register" || strings.HasPrefix(r.URL.Path, "/static/") {
-			f.ServeHTTP(w, r)
-			return
-		}
-
-		// check session validity
-		cookie, err := r.Cookie("session_token")
-		if err != nil {
-			http.Redirect(w, r, "/register", http.StatusSeeOther)
-			return
-		}
-
-		// does the session exist?
-		session_token := cookie.Value
-		current_session, exists := sessions[session_token]
-		if !exists {
-			http.Redirect(w, r, "/register", http.StatusSeeOther)
-			return
-		}
-
-		if time.Until(current_session.expiry) < 30*time.Second {
-
-			fmt.Println("hola")
-			// extend session
-			expires_at := time.Now().Add(120 * time.Second)
-
-			sessions[session_token] = session{
-				username: current_session.username,
-				expiry:   expires_at,
-			}
-
-			http.SetCookie(w, &http.Cookie{
-				Name:    "session_token",
-				Value:   session_token,
-				Expires: expires_at,
-			})
-
-		} else if current_session.is_expired() {
-			delete(sessions, session_token)
-			http.Redirect(w, r, "/register", http.StatusSeeOther)
-			return
-		}
-
-		// We pass the username to the handler through the context, so handlers can know which user is performing the request and act accordingly
-		ctx := context.WithValue(r.Context(), user_key, current_session.username)
-		f.ServeHTTP(w, r.WithContext(ctx))
-	})
 }

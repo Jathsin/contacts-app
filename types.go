@@ -3,7 +3,13 @@ package main
 import (
 	"hypermedia/archiver"
 	"time"
+
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
+
+type app struct {
+	mongo_client *mongo.Client
+}
 
 type Contact struct {
 	ID     int               `json:"id"`
