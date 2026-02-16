@@ -6,6 +6,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	et "braces.dev/errtrace"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -30,6 +31,7 @@ func get_mongo_client() (*mongo.Client, error) {
 	return client, nil
 }
 
+// --------------------------- CONTACTS ----------------------------------------
 func get_user_contacts_db(client *mongo.Client, username string) ([]Contact_db, error) {
 	collection := client.Database(os.Getenv("MONGO_DB")).Collection("contacts")
 
@@ -109,56 +111,6 @@ func delete_contact(client *mongo.Client, username string, id int) error {
 
 	return nil
 }
-
-func find_user(client *mongo.Client, username string) (*User_db, error) {
-	collection := client.Database(os.Getenv("MONGO_DB")).Collection("users")
-
-	filter := bson.D{
-		bson.E{Key: "username", Value: username},
-	}
-	var user User_db
-	err := collection.FindOne(context.TODO(), filter).Decode(&user)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			return nil, nil // or a custom "not found" error, see below
-		}
-		return nil, err
-	}
-	return &user, nil
-}
-
-// insert hashed password
-func insert_user(client *mongo.Client, username string, password string) error {
-	collection := client.Database(os.Getenv("MONGO_DB")).Collection("users")
-
-	user_db := User_db{
-		Username: username,
-		Password: password,
-	}
-
-	_, err := collection.InsertOne(context.TODO(), user_db)
-	if err != nil {
-		return et.Wrap(err)
-	}
-
-	return nil
-}
-
-func delete_user(client *mongo.Client, username string) error {
-	collection := client.Database(os.Getenv("MONGO_DB")).Collection("users")
-
-	filter := bson.D{
-		bson.E{Key: "username", Value: username},
-	}
-	_, err := collection.DeleteOne(context.TODO(), filter)
-	if err != nil {
-		return et.Wrap(err)
-	}
-
-	return nil
-}
-
-// Find functions
 
 func find_contact_id(client *mongo.Client, username string, id int) (*Contact, error) {
 	collection := client.Database(os.Getenv("MONGO_DB")).Collection("contacts")
@@ -245,4 +197,141 @@ func find_contacts(client *mongo.Client, username string, q string) ([]Contact, 
 	}
 
 	return results, nil
+}
+
+// ------------------------------ USERS ----------------------------------------
+
+// insert hashed password
+func insert_user(client *mongo.Client, username string, password string) error {
+	collection := client.Database(os.Getenv("MONGO_DB")).Collection("users")
+
+	user_db := User{
+		Username: username,
+		Password: password,
+	}
+
+	_, err := collection.InsertOne(context.TODO(), user_db)
+	if err != nil {
+		return et.Wrap(err)
+	}
+
+	return nil
+}
+
+func delete_user(client *mongo.Client, username string) error {
+	collection := client.Database(os.Getenv("MONGO_DB")).Collection("users")
+
+	filter := bson.D{
+		bson.E{Key: "username", Value: username},
+	}
+	_, err := collection.DeleteOne(context.TODO(), filter)
+	if err != nil {
+		return et.Wrap(err)
+	}
+
+	return nil
+}
+
+func find_user(client *mongo.Client, username string) (*User, error) {
+	collection := client.Database(os.Getenv("MONGO_DB")).Collection("users")
+
+	filter := bson.D{
+		bson.E{Key: "username", Value: username},
+	}
+	var user User
+	err := collection.FindOne(context.TODO(), filter).Decode(&user)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil // or a custom "not found" error, see below
+		}
+		return nil, err
+	}
+	return &user, nil
+}
+
+// ------------------------------ SESSIONS -------------------------------------
+
+func insert_session(client *mongo.Client, session_token string, username string, expires_at time.Time) error {
+	collection := client.Database(os.Getenv("MONGO_DB")).Collection("sessions")
+
+	session_db := Session{
+		Session_token: session_token,
+		Username:      username,
+		Expiry:        expires_at,
+	}
+
+	_, err := collection.InsertOne(context.TODO(), session_db)
+	if err != nil {
+		return et.Wrap(err)
+	}
+
+	return nil
+}
+
+func delete_session(client *mongo.Client, session_token string) error {
+	collection := client.Database(os.Getenv("MONGO_DB")).Collection("sessions")
+
+	filter := bson.D{
+		bson.E{Key: "session_token", Value: session_token},
+	}
+	_, err := collection.DeleteOne(context.TODO(), filter)
+	if err != nil {
+		return et.Wrap(err)
+	}
+
+	return nil
+}
+
+// Deletes all sessions whose expiry is older than (or equal to) `now`.
+// Returns the number of deleted sessions.
+func delete_expired_sessions(client *mongo.Client) error {
+	collection := client.Database(os.Getenv("MONGO_DB")).Collection("sessions")
+
+	filter := bson.D{
+		bson.E{Key: "expiry", Value: bson.D{bson.E{Key: "$lte", Value: time.Now()}}},
+	}
+
+	_, err := collection.DeleteMany(context.TODO(), filter)
+	if err != nil {
+		return et.Wrap(err)
+	}
+
+	return nil
+}
+
+func find_session(client *mongo.Client, session_token string) (*Session, error) {
+	collection := client.Database(os.Getenv("MONGO_DB")).Collection("sessions")
+
+	filter := bson.D{
+		bson.E{Key: "session_token", Value: session_token},
+	}
+	var session Session
+	err := collection.FindOne(context.TODO(), filter).Decode(&session)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil // or a custom "not found" error, see below
+		}
+		return nil, err
+	}
+	return &session, nil
+}
+
+func update_session_expiry(client *mongo.Client, session_token string, expires_at time.Time) error {
+	collection := client.Database(os.Getenv("MONGO_DB")).Collection("sessions")
+
+	filter := bson.D{
+		bson.E{Key: "session_token", Value: session_token},
+	}
+	update := bson.D{
+		bson.E{Key: "$set", Value: bson.D{
+			bson.E{Key: "expiry", Value: expires_at},
+		}},
+	}
+
+	_, err := collection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		return et.Wrap(err)
+	}
+
+	return nil
 }

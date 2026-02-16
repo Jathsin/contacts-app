@@ -122,7 +122,7 @@ func main() {
 		Addr:         ":8080",
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 90 * time.Second,
-		Handler:      auth(logging(mux)),
+		Handler:      app.auth(logging(mux)),
 	}
 	err = server.ListenAndServe()
 	if err != nil {
@@ -640,8 +640,21 @@ func (app *app) sign_in_handler(w http.ResponseWriter, r *http.Request) {
 	username := r.FormValue("username")
 	password := r.FormValue("password")
 
-	expected_password, ok := users[username]
-	if !ok || expected_password != password {
+	// Check credentials
+	user, err := find_user(app.mongo_client, username)
+	if err != nil {
+		http.Error(w, "Error checking user existence", http.StatusInternalServerError)
+		log.Error("sign_in_handler: error in find_user", "error", err)
+		return
+	}
+
+	if user == nil {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		log.Error("sign_in_handler: user not found: " + username)
+		return
+	}
+
+	if user.Password != password {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		log.Error("sign_in_handler: invalid credentials for user " + username)
 		return
@@ -650,10 +663,14 @@ func (app *app) sign_in_handler(w http.ResponseWriter, r *http.Request) {
 	// create session
 	session_token := uuid.NewString()
 	expires_at := time.Now().Add(1 * time.Minute)
-	sessions[session_token] = session{
-		username: username,
-		expiry:   expires_at,
+	err = insert_session(app.mongo_client, session_token, username, expires_at)
+	if err != nil {
+		http.Error(w, "Error creating session", http.StatusInternalServerError)
+		log.Error("sign_in_handler: error in insert_session", "error", err)
+		return
 	}
+
+	log.Info("User signed in successfully: " + username)
 
 	// tell browser
 	http.SetCookie(w, &http.Cookie{
@@ -685,7 +702,15 @@ func (app *app) logout_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	delete(sessions, cookie.Value)
+	err = delete_session(app.mongo_client, cookie.Value)
+	if err != nil {
+		http.Error(w, "Error deleting session", http.StatusInternalServerError)
+		log.Error("logout_handler: error in delete_session", "error", err)
+		return
+	}
+
+	log.Info("User logged out successfully")
+
 	http.SetCookie(w, &http.Cookie{
 		Name:    "session_token",
 		Value:   "",
@@ -734,14 +759,17 @@ func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users[username] = password
-
 	log.Info("User registered successfully: " + username)
 
 	// Send cookie to browser
 	session_token := uuid.NewString()
 	expires_at := time.Now().Add(120 * time.Second)
-	sessions[session_token] = session{username: username, expiry: expires_at}
+	err = insert_session(app.mongo_client, session_token, username, expires_at)
+	if err != nil {
+		http.Error(w, "Error creating session", http.StatusInternalServerError)
+		log.Error("post_register_handler: error in insert_session", "error", err)
+		return
+	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:    "session_token",

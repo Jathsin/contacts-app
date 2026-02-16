@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -12,10 +11,6 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
-
-// -----------------------------------------------------------------------------
-// 								AUXILIARY FUNCTIONS
-//------------------------------------------------------------------------------
 
 func (app *app) get_contact_page(page int, username string) ([]Contact, error) {
 
@@ -93,7 +88,7 @@ func redirect_register(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/register", http.StatusSeeOther)
 }
 
-func auth(f http.Handler) http.Handler {
+func (app *app) auth(f http.Handler) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
@@ -104,28 +99,41 @@ func auth(f http.Handler) http.Handler {
 
 		// check session validity
 		cookie, err := r.Cookie("session_token")
-		if err != nil {
+		if err == http.ErrNoCookie {
+			err = delete_expired_sessions(app.mongo_client)
+			if err != nil {
+				http.Error(w, "Error deleting session", http.StatusInternalServerError)
+				log.Error("auth: error in delete_expired_sessions", "error", err)
+			}
+			redirect_register(w, r)
+			return
+		} else if err != nil {
+			log.Error("auth: error retrieving session cookie", "error", err)
 			redirect_register(w, r)
 			return
 		}
 
 		// does the session exist?
 		session_token := cookie.Value
-		current_session, exists := sessions[session_token]
-		if !exists {
+		current_session, err := find_session(app.mongo_client, session_token)
+		if err != nil {
+			http.Error(w, "Error finding session", http.StatusInternalServerError)
+			log.Error("auth: error in find_session", "error", err)
 			redirect_register(w, r)
 			return
 		}
 
-		if time.Until(current_session.expiry) < 30*time.Second {
+		if time.Until(current_session.Expiry) < 30*time.Second {
 
-			fmt.Println("hola")
 			// extend session
 			expires_at := time.Now().Add(120 * time.Second)
 
-			sessions[session_token] = session{
-				username: current_session.username,
-				expiry:   expires_at,
+			err = update_session_expiry(app.mongo_client, session_token, expires_at)
+			if err != nil {
+				http.Error(w, "Error updating session expiry", http.StatusInternalServerError)
+				log.Error("auth: error in update_session_expiry", "error", err)
+				redirect_register(w, r)
+				return
 			}
 
 			http.SetCookie(w, &http.Cookie{
@@ -135,13 +143,13 @@ func auth(f http.Handler) http.Handler {
 			})
 
 		} else if current_session.is_expired() {
-			delete(sessions, session_token)
+			// even if the browser doesn´t, some user might send expired cookies
 			redirect_register(w, r)
 			return
 		}
 
 		// We pass the username to the handler through the context, so handlers can know which user is performing the request and act accordingly
-		ctx := context.WithValue(r.Context(), user_key, current_session.username)
+		ctx := context.WithValue(r.Context(), user_key, current_session.Username)
 		f.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

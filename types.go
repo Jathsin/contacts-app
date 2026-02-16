@@ -37,19 +37,18 @@ type Contact_db struct {
 	Phone    string `bson:"phone"`
 }
 
-type User_db struct {
+type User struct {
 	Username string `bson:"username"`
 	Password string `bson:"password"`
 }
 
 // Auth obejcts
-var sessions = map[string]session{}
-
-type session struct {
-	username string
-	expiry   time.Time
+type Session struct {
+	Session_token string    `bson:"session_token"`
+	Username      string    `bson:"username"`
+	Expiry        time.Time `bson:"expiry"`
 }
 
-func (s session) is_expired() bool {
-	return s.expiry.Before(time.Now())
+func (s Session) is_expired() bool {
+	return s.Expiry.Before(time.Now())
 }
