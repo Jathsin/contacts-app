@@ -19,6 +19,7 @@ import (
 
 func get_mongo_client() (*mongo.Client, error) {
 	uri := os.Getenv("MONGO_URI")
+	fmt.Println("MONGO_URI:", uri)
 	if uri == "" {
 		return nil, fmt.Errorf("get_mongo_client: MONGO_URI not set")
 	}

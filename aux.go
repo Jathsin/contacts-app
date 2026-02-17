@@ -123,6 +123,11 @@ func (app *app) auth(f http.Handler) http.Handler {
 			return
 		}
 
+		if current_session == nil {
+			redirect_register(w, r)
+			return
+		}
+
 		if time.Until(current_session.Expiry) < 30*time.Second {
 
 			// extend session

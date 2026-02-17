@@ -1,18 +1,25 @@
 services:
   contacts-app:
-    image: contacts-app:fixed
+    image: contacts-app:v8
     x-ports:
       - contacts.stmit.es:8080/https # debe coincidir con el puerto que escucha la app
 
     restart: always
-
     pull_policy: never # para que no intente descargar imagen de Docker Hub, usamos imágenes locales
+
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - MONGO_DB=${MONGO_DB}
+
+    depends_on:
+      mongo:
+        condition: service_healthy
 
   mongo:
     image: mongo:latest # pulled from Docker Hub
 
-    ports:
-      - "27017:27017" # optional: expose for local tooling
+    # ports:
+    #   - "27017:27017" # optional: expose for local tooling
     volumes:
       - mongo-data:/data/db
 

@@ -12,6 +12,7 @@ import (
 	et "braces.dev/errtrace"
 	"github.com/a-h/templ"
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var log *slog.Logger
@@ -20,12 +21,6 @@ var myArchiver archiver.Archiver
 
 var SUCCESS = "Contact added successfully"
 var DELETE = "Contact deleted successfully"
-
-// TODO: use MongoDB
-var users = map[string]string{
-	"user1": "password1",
-	"user2": "password2",
-}
 
 func templ_error(r *http.Request, err error) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -621,6 +616,11 @@ func (app *app) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 		log.Error("archive_file_handler: error in get_contacts_from_user_contacts_db", "error", err)
 		return
 	}
+	log.Info("archive_file_handler: contacts fetched", "user", get_username(r.Context()), "len", len(contacts))
+
+	for _, c := range contacts {
+		log.Info("Contact to archive", "id", c.ID, "first", c.First, "last", c.Last, "email", c.Email, "phone", c.Phone)
+	}
 
 	json_file := myArchiver.Archive_file(contacts)
 
@@ -654,7 +654,8 @@ func (app *app) sign_in_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Password != password {
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		log.Error("sign_in_handler: invalid credentials for user " + username)
 		return
@@ -751,8 +752,14 @@ func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// insert user in DB
-	err = insert_user(app.mongo_client, username, password)
+	// insert user in DB hashed password
+	hashed_password, err := bcrypt.GenerateFromPassword([]byte(password), 8)
+	if err != nil {
+		http.Error(w, "Error hashing password", http.StatusInternalServerError)
+		log.Error("post_register_handler: error in bcrypt.GenerateFromPassword", "error", err)
+		return
+	}
+	err = insert_user(app.mongo_client, username, string(hashed_password))
 	if err != nil {
 		http.Error(w, "Error registering user", http.StatusInternalServerError)
 		log.Error("post_register_handler: error in insert_user_db", "error", err)

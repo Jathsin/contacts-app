@@ -237,7 +237,7 @@ func archive_ui(archive archiver.Archiver) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		} else if archive.State == "complete" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<a href=\"/contacts/archive/file\"><button class=\"btn-outline\">Archive Ready! Click here to download. &downarrow;</button></a><!-- <a hx-boost=\"false\" href=\"/contacts/archive/file\" _=\"on load click() me\">\n            Archive Downloading! Click here if the download does not start.\n        </a> --> <button hx-delete=\"/contacts/archive\" hx-target=\"#archive-ui\" hx-swap=\"outerHTML\" class=\"btn-outline\">Clear Download</button>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 18, "<a href=\"/contacts/archive/file\" class=\"btn-outline\">Archive Ready! Click here to download. &downarrow;</a><!-- <a hx-boost=\"false\" href=\"/contacts/archive/file\" _=\"on load click() me\">\n            Archive Downloading! Click here if the download does not start.\n        </a> --> <button hx-delete=\"/contacts/archive\" hx-target=\"#archive-ui\" hx-swap=\"outerHTML\" class=\"btn-outline\">Clear Download</button>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}

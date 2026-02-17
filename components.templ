@@ -131,8 +131,8 @@ templ archive_ui(archive archiver.Archiver) {
 				</div>
 			</div>
 		} else if archive.State == "complete" {
-			<a href="/contacts/archive/file">
-				<button class="btn-outline">Archive Ready! Click here to download. &downarrow;</button>
+			<a href="/contacts/archive/file" class="btn-outline">
+				Archive Ready! Click here to download. &downarrow;
 			</a>
 			<!-- <a hx-boost="false" href="/contacts/archive/file" _="on load click() me">
             Archive Downloading! Click here if the download does not start.
