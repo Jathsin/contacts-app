@@ -155,7 +155,7 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("HX-Request") == "true" {
 			templ.Handler(index(contact_list, "", page, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		} else {
-			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver, ""), get_auth_or_profile(r))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver, ""), profile_card(get_username(r.Context())))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		}
 		return
 	}
@@ -226,7 +226,7 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		templ.Handler(show(*c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(show(*c), get_auth_or_profile(r))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(show(*c), profile_card(get_username(r.Context())))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 
 	// s := show(*c)
@@ -355,7 +355,7 @@ func (app *app) get_edit_contact_handler(w http.ResponseWriter, r *http.Request)
 	if r.Header.Get("HX-Request") == "true" {
 		templ.Handler(edit_contact(*c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(edit_contact(*c), get_auth_or_profile(r))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(edit_contact(*c), profile_card(get_username(r.Context())))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 }
 
@@ -546,7 +546,7 @@ func (app *app) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.
 
 // /contacts/{id}/{email}
 func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
-
+	username := get_username(r.Context())
 	id_string := r.PathValue("id")
 	// Parse id
 	id_int, err := strconv.Atoi(id_string)
@@ -556,7 +556,7 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	c, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
+	c, err := find_contact_id(app.mongo_client, username, id_int)
 	if err != nil {
 		http.Error(w, "Error, contact not found", http.StatusBadRequest)
 		log.Error("validate_email_handler: error in find_contact", "error", err)
@@ -564,7 +564,7 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check email is unique
-	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
+	contacts, err := get_user_contacts(app.mongo_client, username)
 	if err != nil {
 		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
 		log.Error("validate_email_handler: error in get_contacts_from_user", "error", err)
@@ -578,7 +578,7 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	templ.Handler(error_email(c.Errors["email"]), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
-// /contacts/archive
+// POST /contacts/archive
 func (app *app) post_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 	time.Sleep(500 * time.Millisecond)
@@ -591,7 +591,7 @@ func (app *app) post_archive_handler(w http.ResponseWriter, r *http.Request) {
 	templ.Handler(archive_ui(myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
-// /contacts/archive
+// GETS /contacts/archive
 func (app *app) get_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 	templ.Handler(archive_ui(myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
@@ -610,17 +610,13 @@ func (app *app) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", `attachment; filename="contacts.json"`)
 	w.Header().Set("Content-Type", "application/json")
 
-	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
+	contacts, err := get_user_contacts_db(app.mongo_client, get_username(r.Context()))
 	if err != nil {
 		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
 		log.Error("archive_file_handler: error in get_contacts_from_user_contacts_db", "error", err)
 		return
 	}
 	log.Info("archive_file_handler: contacts fetched", "user", get_username(r.Context()), "len", len(contacts))
-
-	for _, c := range contacts {
-		log.Info("Contact to archive", "id", c.ID, "first", c.First, "last", c.Last, "email", c.Email, "phone", c.Phone)
-	}
 
 	json_file := myArchiver.Archive_file(contacts)
 
@@ -633,6 +629,8 @@ func (app *app) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 }
 
 // AUTH HANDELRS
+
+const error_message_credentials = "Invalid username or password"
 
 // POST /sign-in
 func (app *app) sign_in_handler(w http.ResponseWriter, r *http.Request) {
@@ -649,15 +647,15 @@ func (app *app) sign_in_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user == nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		log.Error("sign_in_handler: user not found: " + username)
+		templ.Handler(auth_dialog_error_message(error_message_credentials), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		return
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
 		log.Error("sign_in_handler: invalid credentials for user " + username)
+		templ.Handler(auth_dialog_error_message(error_message_credentials), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		return
 	}
 
@@ -680,14 +678,9 @@ func (app *app) sign_in_handler(w http.ResponseWriter, r *http.Request) {
 		Expires: expires_at,
 	})
 
-	contacts_list, err := app.get_contact_page(1, username)
-	if err != nil {
-		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
-		log.Error("sign_in_handler: error in get_contact_list", "error", err)
-		return
-	}
-
-	templ.Handler(con_boton_tema(index(contacts_list, "", 1, myArchiver, ""), profile_card(username)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	// Redirect
+	w.Header().Set("HX-Redirect", "/contacts")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // POST /logout
@@ -718,7 +711,7 @@ func (app *app) logout_handler(w http.ResponseWriter, r *http.Request) {
 		Expires: time.Now(),
 	})
 
-	templ.Handler(con_boton_tema(register(), auth_dialog()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	templ.Handler(con_boton_tema(register(""), motto_contacts_app()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // GET /register
@@ -727,11 +720,13 @@ func (app *app) get_register_handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
 	if r.Header.Get("HX-Request") == "true" {
-		templ.Handler(con_boton_tema(register(), get_auth_or_profile(r)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(con_boton_tema(register(""), motto_contacts_app()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(register(), get_auth_or_profile(r))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(register(""), motto_contacts_app())), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 }
+
+const username_exists_error = "Username already exists"
 
 // POST /register
 func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
@@ -747,8 +742,8 @@ func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user != nil {
-		http.Error(w, "User already exists", http.StatusBadRequest)
 		log.Error("post_register_handler: user already exists: " + username)
+		templ.Handler(con_boton_tema(register(username_exists_error), motto_contacts_app()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		return
 	}
 

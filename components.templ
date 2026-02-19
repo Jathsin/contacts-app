@@ -54,15 +54,12 @@ templ layout(c templ.Component) {
 }
 
 templ con_boton_tema(contenido templ.Component, a templ.Component) {
-	<div id="session" class="relative flex flex-row items-center p-4 mx-[40px] my-[40px]">
-		<div class="absolute items-center left-1/2 -translate-x-1/2 flex">
-			@a
-		</div>
+	// Plantilla envuelta por botón cambio de tema
+	<div id="session" class="relative flex flex-col items-center p-4 mx-[40px] my-[40px] gap-3">
+		// Botón cambio de tema
 		<button
 			type="button"
 			aria-label="Toggle dark mode"
-			data-tooltip="Toggle dark mode"
-			data-side="bottom"
 			onclick="document.dispatchEvent(new CustomEvent('basecoat:theme'))"
 			class="btn-icon-outline size-8 ml-auto"
 		>
@@ -73,18 +70,20 @@ templ con_boton_tema(contenido templ.Component, a templ.Component) {
 				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
 			</span>
 		</button>
+		// Motto ó profile_card
+		@a
 	</div>
 	@contenido
 }
 
 templ index(contact_list []Contact, query string, page int, archive archiver.Archiver, flash_message string) {
 	<main class="mx-auto max-w-[600px] mb-20">
-		<header class="text-center mb-[50px]">
-			<h1>
-				<all-caps class="font-mono">contacts.app</all-caps>
-			</h1>
-			<sub-title>A Demo Contacts Application</sub-title>
-		</header>
+		// <header class="text-center mb-[50px]">
+		// 	<h1>
+		// 		<all-caps class="font-mono">contacts.app</all-caps>
+		// 	</h1>
+		// 	<sub-title>A Demo Contacts Application</sub-title>
+		// </header>
 		// flash messages
 		if flash_message != "" {
 			<div
@@ -98,25 +97,50 @@ templ index(contact_list []Contact, query string, page int, archive archiver.Arc
 				<h2>{ flash_message }</h2>
 			</div>
 		}
-		<p>
-			<button hx-get="/contacts/new" hx-target="main" hx-swap="outerHTML" hx-push-url="true" class="btn-outline my-[10px] mr-[10px]">Add Contact</button>
-			<span hx-get="/contacts/count" hx-trigger="load, contacts-changed from:body">
-				<button class="btn-outline" disabled>
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
-					Loading
-				</button>
-			</span>
-		</p>
-		@archive_ui(archive)
+		<button
+			hx-get="/contacts/new"
+			hx-target="main"
+			hx-swap="outerHTML"
+			hx-push-url="true"
+			class="btn-outline my-[10px] mr-[10px]"
+			data-tooltip="Add new contact"
+			data-side="bottom"
+		>
+			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
+			</svg>
+		</button>
+		<span hx-get="/contacts/count" hx-trigger="load, contacts-changed from:body">
+			<button class="btn-outline" disabled>
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
+				Loading
+			</button>
+		</span>
 		@search_bar(query)
-		@contact_table(page, contact_list)
+		<div class="flex flex-col mt-[20px]">
+			<div class="w-full justify-end">
+				@archive_ui(archive)
+			</div>
+			@contact_table(page, contact_list)
+		</div>
 	</main>
 }
 
 templ archive_ui(archive archiver.Archiver) {
 	<div id="archive-ui" class="mb-[15px]">
 		if archive.State == "waiting" {
-			<button hx-post="/contacts/archive" hx-target="this" hx-swap="outerHTML" class="btn-outline">Download Contact Archive</button>
+			<button
+				hx-post="/contacts/archive"
+				hx-target="this"
+				hx-swap="outerHTML"
+				class="cursor-pointer"
+				data-tooltip="download contacts json"
+				data-side="bottom"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"></path>
+				</svg>
+			</button>
 		} else if archive.Status() == "running" {
 			<div hx-get="/contacts/archive" hx-target="this" hx-swap="outerHTML" hx-trigger="load delay:500ms">
 				Creating Archive...
@@ -167,7 +191,6 @@ templ search_bar(query string) {
 				hx-indicator="#spinner"
 				_="on keydown[altKey and code is 'KeyS'] from the window focus() me"
 			/>
-			<button type="submit" class="btn">Submit</button>
 		</div>
 	</form>
 }
@@ -176,18 +199,23 @@ templ contact_table(page int, contact_list []Contact) {
 	<form x-data="{selected: []}" class="mt-[30px]">
 		<template x-if="selected.length > 0">
 			<div class="box info tool-bat mb-[40px]">
-				<div class="flex flex-row gap-1 mb-[40px]">
+				<div x-init="$nextTick(() => htmx.process($el))" class="flex flex-row items-center gap-1 mb-[40px]">
 					<slot x-text="selected.length"></slot>
 					contacts selected
 					<button
 						type="button"
 						class="btn-destructive ml-[20px]"
-						@click="confirm(`Delete ${selected.length} contacts?`) &&
-						htmx.ajax('DELETE', '/contacts',
-						{ source: $root, target: document.querySelector('main'), swap: 'outerHTML'})"
-					>
-						Delete
-					</button>
+						@click="Swal.fire({ 
+							title: 'Delete these contacts?', 
+							showCancelButton: true,
+							confirmButtonText: 'Delete'
+						}).then((result) => {
+							if (result.isConfirmed) htmx.ajax('DELETE', '/contacts',
+								{ source: $root, target: document.querySelector('main'),
+								  swap: 'outerHTML' 
+								})
+						});"
+					>Delete</button>
 					<hr aria-orientation="vertical"/>
 					<button type="button" @click="selected=[]" class="btn-secondary ml-[20px]">Cancel</button>
 				</div>
@@ -238,23 +266,6 @@ templ contact_table(page int, contact_list []Contact) {
 				</li>
 			</ul>
 		</nav>
-		<button
-			type="button"
-			class="btn-destructive mt-[20px] mx-auto block"
-			:disabled="selected.length === 0"
-			hx-delete=" /contacts"
-			hx-trigger="confirmed"
-			@click="sweetConfirm($el, { 
-				title: 'Delete these contacts?', 
-				showCancelButton: true,
-				confirmButtonText: 'Delete'
-			})"
-			hx-swap="outerHTML"
-			hx-target="main"
-			hx-push-url="/contacts"
-		>
-			Delete Selected Contacts
-		</button>
 	</form>
 }
 
@@ -518,65 +529,49 @@ templ error_email(err string) {
 }
 
 // AUTH ui
-templ auth_dialog() {
-	<button type="button" onclick="document.getElementById('auth-dialog').showModal()" class="btn flex flex-row justify-center items-center px-3 p-y-1 max-auto mt-[40px] rounded-[50px]">sign in</button>
-	<dialog
-		id="auth-dialog"
-		class="dialog fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full sm:max-w-[425px] max-h-[612px] m-0 rounded-[15px]"
-		aria-labelledby="auth-dialog-title"
-		aria-describedby="auth-dialog-description"
-		onclick="if (event.target === this) this.close()"
-	>
-		<div class="card w-full">
-			<header>
-				<h2>Login to your account</h2>
-				<p>Enter your details below to login to your account</p>
-			</header>
-			<section>
-				<form class="form grid gap-6" hx-post="/sign-in" hx-target="body" hx-swap="outerHTML" hx-push-url="/contacts">
-					<div class="grid gap-2">
-						<label for="username">Username</label>
-						<input type="text" id="username" name="username"/>
-					</div>
-					<div class="grid gap-2">
-						<label for="password">Password</label>
-						<input type="password" id="password" name="password"/>
-					</div>
-					<button type="submit" class="btn w-full" hx-post="/sign-in">Login</button>
-				</form>
-			</section>
-			<footer class="flex flex-col items-center gap-2">
-				<p class="mt-4 text-center text-sm">
-					Don't have an account? <a
-	hx-get="/register"
-	hx-target="body"
-	hx-swap="outerHTML"
-	hx-push-url="true"
-	class="underline-offset-4 hover:underline"
->Sign up</a>
-				</p>
-			</footer>
-		</div>
-	</dialog>
+templ motto_contacts_app() {
+	<div class="flex items-center">
+		<header class="text-center mb-[10px]">
+			<h1>
+				<all-caps class="font-mono">contacts.app</all-caps>
+			</h1>
+			<sub-title>A Demo Contacts Application</sub-title>
+		</header>
+	</div>
 }
 
-templ register() {
-	<main class="mx-auto max-w-[600px] mb-20">
+templ auth_dialog_error_message(error_message string) {
+	<span id="auth-error-message" class="error text-sm">{ error_message }</span>
+}
+
+templ register(error_message string) {
+	<main class="mx-auto max-w-[600px] mt-[90px]">
+		// Tarjeta con formulario de registro
 		<div class="card w-full">
+			// Header de la tarjeta
 			<header>
 				<h2>Register a new account</h2>
 				<p>Enter your details below to create a new account</p>
 			</header>
+			// Contenido tarjeta con formularios
 			<section>
-				<form class="form grid gap-6" hx-post="/register" hx-target="body" hx-swap="outerHTML" hx-push-url="/contacts">
+				// Formulario
+				<form
+					class="form gap-6 grid"
+					hx-post="/register"
+					hx-target="body"
+					hx-swap="outerHTML"
+					hx-push-url="/contacts"
+				>
+					// Input usuario
 					<div class="grid gap-2">
 						<label for="username">Username</label>
 						<input type="text" id="username" name="username"/>
+						<span class="error text-sm">{ error_message }</span>
 					</div>
+					// Input contraseña
 					<div class="grid gap-2">
-						<div class="flex items-center gap-2">
-							<label for="password">Password</label>
-						</div>
+						<label for="password">Password</label>
 						<input type="password" id="password" name="password"/>
 					</div>
 					<button type="submit" class="btn w-full">Sign up</button>
@@ -593,26 +588,103 @@ templ register() {
 				// 					</p>
 				// 				</footer>
 			</section>
+			<p class="px-7 text-sm flex flex-row">
+				Already have an account?&nbsp;
+				<a
+					onclick="document.getElementById('auth-dialog').showModal()"
+					class="cursor-pointer hover:underline"
+				>
+					Log in
+				</a>
+			</p>
+			<dialog
+				id="auth-dialog"
+				class="
+					dialog 
+					fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full m-0
+					rounded-[15px]
+					sm:max-w-[425px] max-h-[612px]
+				"
+				aria-labelledby="auth-dialog-title"
+				aria-describedby="auth-dialog-description"
+				onclick="if (event.target === this) this.close()"
+			>
+				<div class="card w-full">
+					<header>
+						<h2>Log in to your account</h2>
+						<p>Enter your details below to log in to your account</p>
+					</header>
+					<section>
+						<form
+							class="form grid gap-6"
+							hx-post="/sign-in"
+							hx-target="#auth-error-message"
+							hx-swap="outerHTML"
+							hx-push-url="/contacts"
+						>
+							<div class="grid gap-2">
+								<label for="username">Username</label>
+								<input type="text" id="username" name="username"/>
+							</div>
+							<div class="grid gap-2">
+								<label for="password">Password</label>
+								<input type="password" id="password" name="password"/>
+							</div>
+							<span id="auth-error-message" class="error text-sm">
+								{ error_message }
+							</span>
+							<button type="submit" class="btn w-full" hx-post="/sign-in">
+								Log in
+							</button>
+						</form>
+					</section>
+					<footer class="flex flex-col items-center gap-2">
+						<p class="mt-4 text-sm text-center ">
+							Don't have an account? 
+							<a
+								hx-get="/register"
+								hx-target="body"
+								hx-swap="outerHTML"
+								hx-push-url="true"
+								class="underline-offset-4 hover:underline"
+							>Sign up</a>
+						</p>
+					</footer>
+				</div>
+			</dialog>
 		</div>
 	</main>
 }
 
 templ profile_card(username string) {
-	<div class="flex flex-row gap-2" onclick="document.getElementById('profile-dialog').showModal()">
-		<div class="flex flex-row flex-wrap items-center gap-12">
+	<div class="w-full flex items-center justify-end">
+		<button
+			type="button"
+			onclick="document.getElementById('alert-dialog').showModal()"
+			class="cursor-pointer"
+			data-tooltip={ username }
+			data-side="bottom"
+		>
 			<img class="size-8 shrink-0 object-cover rounded-lg" alt="@shadcn" src="https://github.com/shadcn.png"/>
-		</div>
-		<div>{ username }</div>
+		</button>
+		<dialog
+			id="alert-dialog"
+			class="	dialog 
+					fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full m-0 p-5
+					rounded-[15px]
+					sm:max-w-[425px] max-h-[612px]"
+			aria-labelledby="alert-dialog-title"
+			aria-describedby="alert-dialog-description"
+		>
+			<div class="flex flex-col gap-5">
+				<header>
+					<h2 id="alert-dialog-title">{ username }, are you sure you want to end this session?</h2>
+				</header>
+				<footer class="flex flex-row gap-3">
+					<button class="btn-outline" onclick="document.getElementById('alert-dialog').close()">Cancel</button>
+					<button type="button" class="btn-destructive" hx-post="/logout" hx-target="body" hx-swap="outerHTML" hx-push-url="/contacts">Logout</button>
+				</footer>
+			</div>
+		</dialog>
 	</div>
-	<dialog
-		id="profile-dialog"
-		class="dialog fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-fit rounded-[15px]"
-		aria-labelledby="profile-dialog-title"
-		aria-describedby="profile-dialog-description"
-		onclick="if (event.target === this) this.close()"
-	>
-		<div class="flex justify-center">
-			<button type="button" class="btn-destructive" hx-post="/logout" hx-target="body" hx-swap="outerHTML" hx-push-url="/contacts">Logout</button>
-		</div>
-	</dialog>
 }

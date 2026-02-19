@@ -7,10 +7,31 @@ import (
 	"time"
 
 	et "braces.dev/errtrace"
-	"github.com/a-h/templ"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
+
+// Convert results from Contact_db to Contact
+func get_user_contacts(mongo_client *mongo.Client, username string) ([]Contact, error) {
+
+	user_contacts_db, err := get_user_contacts_db(mongo_client, username)
+	if err != nil {
+		return nil, et.Wrap(err)
+	}
+
+	var contacts []Contact
+	for _, c := range user_contacts_db {
+		contacts = append(contacts, Contact{
+			ID:     c.ID,
+			First:  c.First,
+			Last:   c.Last,
+			Email:  c.Email,
+			Phone:  c.Phone,
+			Errors: make(map[string]string),
+		})
+	}
+	return contacts, nil
+}
 
 func (app *app) get_contact_page(page int, username string) ([]Contact, error) {
 
@@ -165,35 +186,4 @@ func get_username(ctx context.Context) string {
 		return ""
 	}
 	return username
-}
-
-// Others  ---------------------------------------------------------------------
-
-// Convert results from Contact_db to  Contact
-func get_user_contacts(mongo_client *mongo.Client, username string) ([]Contact, error) {
-
-	user_contacts_db, err := get_user_contacts_db(mongo_client, username)
-	if err != nil {
-		return nil, et.Wrap(err)
-	}
-
-	var contacts []Contact
-	for _, c := range user_contacts_db {
-		contacts = append(contacts, Contact{
-			ID:    c.ID,
-			First: c.First,
-			Last:  c.Last,
-			Email: c.Email,
-			Phone: c.Phone,
-		})
-	}
-	return contacts, nil
-}
-
-func get_auth_or_profile(r *http.Request) templ.Component {
-	username := get_username(r.Context())
-	if username != "" {
-		return profile_card(username)
-	}
-	return auth_dialog()
 }

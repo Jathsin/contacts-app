@@ -19,7 +19,6 @@ import (
 
 func get_mongo_client() (*mongo.Client, error) {
 	uri := os.Getenv("MONGO_URI")
-	fmt.Println("MONGO_URI:", uri)
 	if uri == "" {
 		return nil, fmt.Errorf("get_mongo_client: MONGO_URI not set")
 	}
@@ -129,11 +128,12 @@ func find_contact_id(client *mongo.Client, username string, id int) (*Contact, e
 	}
 
 	contact := &Contact{
-		ID:    contact_db.ID,
-		First: contact_db.First,
-		Last:  contact_db.Last,
-		Email: contact_db.Email,
-		Phone: contact_db.Phone,
+		ID:     contact_db.ID,
+		First:  contact_db.First,
+		Last:   contact_db.Last,
+		Email:  contact_db.Email,
+		Phone:  contact_db.Phone,
+		Errors: make(map[string]string),
 	}
 
 	return contact, nil

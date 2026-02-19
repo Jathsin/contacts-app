@@ -1,6 +1,6 @@
 services:
   contacts-app:
-    image: contacts-app:v8
+    image: contacts-app:v2
     x-ports:
       - contacts.stmit.es:8080/https # debe coincidir con el puerto que escucha la app
 
