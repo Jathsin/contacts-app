@@ -78,66 +78,69 @@ templ con_boton_tema(contenido templ.Component, a templ.Component) {
 
 templ index(contact_list []Contact, query string, page int, archive archiver.Archiver, flash_message string) {
 	<main class="mx-auto max-w-[600px] mb-20">
-		// <header class="text-center mb-[50px]">
-		// 	<h1>
-		// 		<all-caps class="font-mono">contacts.app</all-caps>
-		// 	</h1>
-		// 	<sub-title>A Demo Contacts Application</sub-title>
-		// </header>
-		// flash messages
-		if flash_message != "" {
-			<div
-				if strings.Contains(flash_message, "deleted") {
-					class="alert-destructive"
-				} else {
-					class="alert"
-				}
-			>
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle> <path d="m9 12 2 2 4-4"></path> </svg>
-				<h2>{ flash_message }</h2>
+		<div class="flex flex-col gap-y-5">
+			<span class="ml-[40px] text-black/80" hx-get="/contacts/count" hx-trigger="load, contacts-changed from:body">
+				<button class="btn-outline" disabled>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
+					<span>Loading</span>
+				</button>
+			</span>
+			// <header class="text-center mb-[50px]">
+			// 	<h1>
+			// 		<all-caps class="font-mono">contacts.app</all-caps>
+			// 	</h1>
+			// 	<sub-title>A Demo Contacts Application</sub-title>
+			// </header>
+			// flash messages
+			if flash_message != "" {
+				<div
+					if strings.Contains(flash_message, "deleted") {
+						class="alert-destructive"
+					} else {
+						class="alert"
+					}
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle> <path d="m9 12 2 2 4-4"></path> </svg>
+					<h2>{ flash_message }</h2>
+				</div>
+			}
+			<div class="flex flex-col gap-y-10">
+				<div id="aux_bar_section">
+					// used to clear after contacts download
+					<div id="bar_section" class="flex flex-row gap-4 w-full">
+						@archive_ui(archive)
+						@search_bar(query)
+					</div>
+				</div>
+				<div id="download_archiver"></div>
+				@contact_table(page, contact_list)
 			</div>
-		}
-		<button
-			hx-get="/contacts/new"
-			hx-target="main"
-			hx-swap="outerHTML"
-			hx-push-url="true"
-			class="btn-outline my-[10px] mr-[10px]"
-			data-tooltip="Add new contact"
-			data-side="bottom"
-		>
-			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-				<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
-			</svg>
-		</button>
-		<span hx-get="/contacts/count" hx-trigger="load, contacts-changed from:body">
-			<button class="btn-outline" disabled>
-				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
-				Loading
-			</button>
-		</span>
-		@search_bar(query)
-		<div class="flex flex-col mt-[20px]">
-			<div class="w-full justify-end">
-				@archive_ui(archive)
-			</div>
-			@contact_table(page, contact_list)
 		</div>
 	</main>
 }
 
+templ bar_section(query string, archive archiver.Archiver) {
+	<div id="aux_bar_section">
+		// used to clear after contacts download
+		<div id="bar_section" class="flex flex-row gap-4 items-center w-full">
+			@archive_ui(archive)
+			@search_bar(query)
+		</div>
+	</div>
+}
+
 templ archive_ui(archive archiver.Archiver) {
-	<div id="archive-ui" class="mb-[15px]">
+	<div id="archive-ui" class="mt-[7px]">
 		if archive.State == "waiting" {
 			<button
 				hx-post="/contacts/archive"
-				hx-target="this"
-				hx-swap="outerHTML"
+				hx-target="closest #bar_section"
+				hx-swap="afterend"
 				class="cursor-pointer"
 				data-tooltip="download contacts json"
 				data-side="bottom"
 			>
-				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"></path>
 				</svg>
 			</button>
@@ -155,13 +158,19 @@ templ archive_ui(archive archiver.Archiver) {
 				</div>
 			</div>
 		} else if archive.State == "complete" {
-			<a href="/contacts/archive/file" class="btn-outline">
-				Archive Ready! Click here to download. &downarrow;
-			</a>
-			<!-- <a hx-boost="false" href="/contacts/archive/file" _="on load click() me">
-            Archive Downloading! Click here if the download does not start.
-        </a> -->
-			<button hx-delete="/contacts/archive" hx-target="#archive-ui" hx-swap="outerHTML" class="btn-outline">Clear Download</button>
+			<div class="flex flex-row items-center gap-2 pl-[36px]">
+				<a href="/contacts/archive/file" class="btn-outline">
+					Download here &downarrow;
+				</a>
+				<!-- <a hx-boost="false" href="/contacts/archive/file" _="on load click() me">
+							Archive Downloading! Click here if the download does not start.
+							</a> -->
+				<button hx-delete="/contacts/archive" hx-target="#aux_bar_section" hx-swap="outerHTML" class="btn-outline" data-tooltip="clear" data-side="bottom">
+					<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+						<path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"></path>
+					</svg>
+				</button>
+			</div>
 		}
 	</div>
 }
@@ -170,7 +179,7 @@ templ search_bar(query string) {
 	<form
 		action="/contacts"
 		method="get"
-		class="form grid gap-6"
+		class="form grid gap-5 w-full"
 		hx-get="/contacts"
 		hx-push-url="true"
 		hx-target="tbody"
@@ -196,28 +205,37 @@ templ search_bar(query string) {
 }
 
 templ contact_table(page int, contact_list []Contact) {
-	<form x-data="{selected: []}" class="mt-[30px]">
+	<form x-data="{selected: []}">
 		<template x-if="selected.length > 0">
 			<div class="box info tool-bat mb-[40px]">
-				<div x-init="$nextTick(() => htmx.process($el))" class="flex flex-row items-center gap-1 mb-[40px]">
-					<slot x-text="selected.length"></slot>
-					contacts selected
-					<button
-						type="button"
-						class="btn-destructive ml-[20px]"
-						@click="Swal.fire({ 
-							title: 'Delete these contacts?', 
-							showCancelButton: true,
-							confirmButtonText: 'Delete'
-						}).then((result) => {
-							if (result.isConfirmed) htmx.ajax('DELETE', '/contacts',
-								{ source: $root, target: document.querySelector('main'),
-								  swap: 'outerHTML' 
-								})
-						});"
-					>Delete</button>
-					<hr aria-orientation="vertical"/>
-					<button type="button" @click="selected=[]" class="btn-secondary ml-[20px]">Cancel</button>
+				<div x-init="$nextTick(() => htmx.process($el))" class="flex flex-col items-center gap-3 mb-[40px]">
+					<span class="text-black/50"><slot x-text="selected.length"></slot> contacts selected</span>
+					<div class="flex items-center">
+						<button
+							type="button"
+							class="btn-destructive"
+							@click="Swal.fire({
+								title: 'Delete these contacts?',
+								showCancelButton: true,
+								confirmButtonText: 'Delete'
+							}).then((result) => {
+								if (result.isConfirmed) htmx.ajax('DELETE', '/contacts',
+									{ source: $root, target: document.querySelector('main'),
+									  swap: 'outerHTML'
+									})
+							});"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+								<path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"></path>
+							</svg>
+						</button>
+						<hr aria-orientation="vertical"/>
+						<button type="button" @click="selected=[]" class="btn-secondary ml-[10px]">
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+								<path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"></path>
+							</svg>
+						</button>
+					</div>
 				</div>
 			</div>
 		</template>
@@ -229,8 +247,24 @@ templ contact_table(page int, contact_list []Contact) {
 					<th>Last</th>
 					<th>Phone</th>
 					<th>Email</th>
-					<th>Avatar</th> <!-- Avatar column (empty header) -->
-					<th></th> <!-- Options column (if needed) -->
+					<th class="w-0 whitespace-nowrap">Avatar</th>
+					<th>
+						<div class="flex justify-end">
+							<button
+								hx-get="/contacts/new"
+								hx-target="main"
+								hx-swap="outerHTML"
+								hx-push-url="true"
+								class="btn-outline p-0 flex items-center justify-center size-7 rounded-full"
+								data-tooltip="Add new contact"
+								data-side="bottom"
+							>
+								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
+								</svg>
+							</button>
+						</div>
+					</th>
 				</tr>
 			</thead>
 			@rows(contact_list)
@@ -278,33 +312,46 @@ templ rows(contact_list []Contact) {
 				<td>{ c.Last }</td>
 				<td>{ c.Phone }</td>
 				<td>{ c.Email }</td>
-				<td class="p-2">
-					<div class="flex justify-center items-center h-full">
-						<img
-							class="size-8 shrink-0 object-cover rounded-full"
-							alt="@hunvreus"
-							src="https://github.com/hunvreus.png"
-						/>
-					</div>
+				<td class="p-2 align-middle w-0 whitespace-nowrap">
+					<img
+						class="size-8 shrink-0 object-cover rounded-full ml-[5px]"
+						alt="@hunvreus"
+						src="https://github.com/hunvreus.png"
+					/>
 				</td>
-				<td>
-					<div id="demo-dropdown-menu" class="dropdown-menu" data-overflow-menu>
+				<td class="p-2">
+					<div id="demo-dropdown-menu" class="dropdown-menu flex justify-end" data-overflow-menu>
 						<button
 							type="button"
 							id="demo-dropdown-menu-trigger"
 							aria-haspopup="menu"
 							aria-controls="demo-dropdown-menu-menu"
 							aria-expanded="false"
-							class="btn-outline"
-						>Options</button>
-						<div id="demo-dropdown-menu-popover" data-popover aria-hidden="true" class="min-w-56">
+							class="p-0 inline-flex items-center justify-center btn-outline rounded-full aspect-square size-7 cursor-pointer"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">
+								<path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z"></path>
+							</svg>
+						</button>
+						<div id="demo-dropdown-menu-popover" data-popover aria-hidden="true" class="min-w-32">
 							<div role="menu" id="demo-dropdown-menu-menu" aria-labelledby="demo-dropdown-menu-trigger">
 								<div role="group" aria-labelledby="account-options" id={ fmt.Sprintf("contact-menu-%d", c.ID) }>
 									<a hx-get={ fmt.Sprintf("/contacts/%d/edit", c.ID) } hx-target="main" hx-swap="outerHTML" hx-push-url={ fmt.Sprintf("/contacts/%d/edit", c.ID) }>
-										<div role="menuitem">Edit</div>
+										<div role="menuitem">
+											Edit 
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+												<path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"></path>
+											</svg>
+										</div>
 									</a>
 									<a hx-get={ fmt.Sprintf("/contacts/%d", c.ID) } hx-target="main" hx-swap="outerHTML" hx-push-url={ fmt.Sprintf("/contacts/%d", c.ID) }>
-										<div role="menuitem">View</div>
+										<div role="menuitem">
+											View
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+												<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"></path>
+												<path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"></path>
+											</svg>
+										</div>
 									</a>
 									<a
 										hx-delete={ fmt.Sprintf("/contacts/%d", c.ID) }
@@ -313,7 +360,12 @@ templ rows(contact_list []Contact) {
 										hx-swap="outerHTML swap:400ms"
 										class="fade-swap"
 									>
-										<div role="menuitem">Delete</div>
+										<div role="menuitem">
+											Delete
+											<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-4">
+												<path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0"></path>
+											</svg>
+										</div>
 									</a>
 								</div>
 							</div>

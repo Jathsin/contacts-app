@@ -133,6 +133,8 @@ func main() {
 // /contacts?q={id}
 func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
+	myArchiver.Reset()
+
 	q := r.URL.Query().Get("q")
 
 	if q == "" {
@@ -489,7 +491,7 @@ func (app *app) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	}
 	count := len(contacts)
 
-	_, err = w.Write([]byte(strconv.Itoa(count) + " total Contacts"))
+	_, err = w.Write([]byte(get_username(r.Context()) + ", you have " + strconv.Itoa(count) + "contacts"))
 	if err != nil {
 		http.Error(w, "Error, could not write response", http.StatusInternalServerError)
 		log.Error("count_contacts_handler: error in  w.Write()", "error", err)
@@ -593,15 +595,13 @@ func (app *app) post_archive_handler(w http.ResponseWriter, r *http.Request) {
 
 // GETS /contacts/archive
 func (app *app) get_archive_handler(w http.ResponseWriter, r *http.Request) {
-
 	templ.Handler(archive_ui(myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // DELETE /contacts/archive
 func (app *app) delete_archive_handler(w http.ResponseWriter, r *http.Request) {
-
 	myArchiver.Reset()
-	templ.Handler(archive_ui(myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	templ.Handler(bar_section("", myArchiver), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // /contacts/archive/file
@@ -692,6 +692,7 @@ func (app *app) logout_handler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
+		//
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
