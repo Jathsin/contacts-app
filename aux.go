@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"net/http"
-	"strings"
 	"time"
 
 	et "braces.dev/errtrace"
@@ -109,14 +108,9 @@ func redirect_register(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/register", http.StatusSeeOther)
 }
 
-func (app *app) auth(f http.Handler) http.Handler {
+func (app *app) auth(f http.HandlerFunc) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		if r.URL.Path == "/" || r.URL.Path == "/sign-in" || r.URL.Path == "/register" || strings.HasPrefix(r.URL.Path, "/static/") {
-			f.ServeHTTP(w, r)
-			return
-		}
 
 		// check session validity
 		cookie, err := r.Cookie("session_token")

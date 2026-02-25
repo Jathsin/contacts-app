@@ -63,33 +63,33 @@ func main() {
 		http.Redirect(w, r, "/register", http.StatusFound)
 	})
 
-	mux.HandleFunc("GET /contacts", app.contact_query_handler)
+	mux.Handle("GET /contacts", app.auth(app.contact_query_handler))
 
-	mux.HandleFunc("GET /contacts/{id}", app.contact_id_handler)
+	mux.Handle("GET /contacts/{id}", app.auth(app.contact_id_handler))
 
-	mux.HandleFunc("GET /contacts/new", app.get_add_contact_handler)
+	mux.Handle("GET /contacts/new", app.auth(app.get_add_contact_handler))
 
-	mux.HandleFunc("POST /contacts/new", app.post_add_contact_handler)
+	mux.Handle("POST /contacts/new", app.auth(app.post_add_contact_handler))
 
-	mux.HandleFunc("GET /contacts/{id}/edit", app.get_edit_contact_handler)
+	mux.Handle("GET /contacts/{id}/edit", app.auth(app.get_edit_contact_handler))
 
-	mux.HandleFunc("POST /contacts/{id}/edit", app.post_edit_contact_handler)
+	mux.Handle("POST /contacts/{id}/edit", app.auth(app.post_edit_contact_handler))
 
-	mux.HandleFunc("DELETE /contacts/{id}", app.delete_contact_handler)
+	mux.Handle("DELETE /contacts/{id}", app.auth(app.delete_contact_handler))
 
-	mux.HandleFunc("DELETE /contacts", app.delete_multiple_contacts_handler)
+	mux.Handle("DELETE /contacts", app.auth(app.delete_multiple_contacts_handler))
 
-	mux.HandleFunc("GET /contacts/count", app.count_contacts_handler)
+	mux.Handle("GET /contacts/count", app.auth(app.count_contacts_handler))
 
-	mux.HandleFunc("GET /contacts/{id}/email", app.validate_email_handler)
+	mux.Handle("GET /contacts/{id}/email", app.auth(app.validate_email_handler))
 
-	mux.HandleFunc("POST /contacts/archive", app.post_archive_handler)
+	mux.Handle("POST /contacts/archive", app.auth(app.post_archive_handler))
 
-	mux.HandleFunc("GET /contacts/archive", app.get_archive_handler)
+	mux.Handle("GET /contacts/archive", app.auth(app.get_archive_handler))
 
-	mux.HandleFunc("DELETE /contacts/archive", app.delete_archive_handler)
+	mux.Handle("DELETE /contacts/archive", app.auth(app.delete_archive_handler))
 
-	mux.HandleFunc("GET /contacts/archive/file", app.archive_file_handler)
+	mux.Handle("GET /contacts/archive/file", app.auth(app.archive_file_handler))
 
 	// Auth api
 
@@ -102,22 +102,22 @@ func main() {
 	mux.HandleFunc("POST /register", app.post_register_handler)
 
 	// json api
-	mux.HandleFunc("GET /api/v1/contacts", app.get_contacts_handler)
+	mux.Handle("GET /api/v1/contacts", app.auth(app.get_contacts_handler))
 
-	mux.HandleFunc("POST /api/v1/contacts", app.post_contacts_handler)
+	mux.Handle("POST /api/v1/contacts", app.auth(app.post_contacts_handler))
 
-	mux.HandleFunc("GET /api/v1/contacts/{id}", app.get_contact_handler)
+	mux.Handle("GET /api/v1/contacts/{id}", app.auth(app.get_contact_handler))
 
-	mux.HandleFunc("PUT /api/v1/contacts/{id}", app.put_contact_handler)
+	mux.Handle("PUT /api/v1/contacts/{id}", app.auth(app.put_contact_handler))
 
-	mux.HandleFunc("DELETE /api/v1/contacts/{id}", app.delete_contact_handler_json)
+	mux.Handle("DELETE /api/v1/contacts/{id}", app.auth(app.delete_contact_handler_json))
 
 	// Start server
 	server := http.Server{
 		Addr:         ":8080",
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 90 * time.Second,
-		Handler:      app.auth(logging(mux)),
+		Handler:      logging(mux),
 	}
 	err = server.ListenAndServe()
 	if err != nil {
@@ -149,7 +149,7 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 
 		contact_list, err := app.get_contact_page(page, get_username(r.Context()))
 		if err != nil {
-			http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("contact_query_handler: error in get_contact_list", "error", err)
 			return
 		}
@@ -165,7 +165,7 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 	// Search for specific contact
 	contact_results, err := find_contacts(app.mongo_client, get_username(r.Context()), q)
 	if err != nil {
-		http.Error(w, "Error, contact not found", http.StatusBadRequest)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("contact_query_handler: error in find_contact", "error", err)
 		return
 	}
@@ -194,7 +194,7 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 		// var err error
 		contact_list, err := app.get_contact_page(page, get_username(r.Context()))
 		if err != nil {
-			http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("contact_id_handler: error in get_contact_list", "error", err)
 			return
 		}
@@ -211,7 +211,7 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	// Parse id
 	id_int, err := strconv.Atoi(id_string)
 	if err != nil {
-		http.Error(w, "Error, id must be an integer", http.StatusBadRequest)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("contact_id_handler: error in strconv.Atoi(id)", "error", err)
 		return
 	}
@@ -219,8 +219,13 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	// Search for specific contact
 	c, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 	if err != nil {
-		http.Error(w, "Error, contact not found", http.StatusBadRequest)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("contact_id_handler: error in find_contact", "error", err)
+		return
+	}
+	if c == nil {
+		http.Error(w, "Error, contact not found", http.StatusBadRequest)
+		log.Error("contact_id_handler: error in find_contact")
 		return
 	}
 
@@ -268,7 +273,7 @@ func (app *app) post_add_contact_handler(w http.ResponseWriter, r *http.Request)
 	// Compute new id
 	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
 	if err != nil {
-		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("post_add_contact_handler: error in get_contacts_from_user", "error", err)
 		return
 	}
@@ -308,7 +313,7 @@ func (app *app) post_add_contact_handler(w http.ResponseWriter, r *http.Request)
 		// Insert contact in DB
 		err := insert_contact(app.mongo_client, c, get_username(r.Context()))
 		if err != nil {
-			http.Error(w, "Error inserting contact in DB", http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("post_add_contact_handler: error in insert_contact()", "error", err)
 			return
 		}
@@ -317,7 +322,7 @@ func (app *app) post_add_contact_handler(w http.ResponseWriter, r *http.Request)
 
 		contact_list, err := app.get_contact_page(1, get_username(r.Context()))
 		if err != nil {
-			http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("post_add_contact_handler: error in get_contact_list", "error", err)
 			return
 		}
@@ -349,7 +354,7 @@ func (app *app) get_edit_contact_handler(w http.ResponseWriter, r *http.Request)
 	// Search for contact to edit
 	c, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 	if err != nil {
-		http.Error(w, "Error, contact not found", http.StatusBadRequest)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("edit_contact_get_handler: error in find_contact", "error", err)
 		return
 	}
@@ -385,7 +390,7 @@ func (app *app) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 
 	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
 	if err != nil {
-		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("edit_contact_post_handler: error in get_contacts_from_user_contacts_db", "error", err)
 		return
 	}
@@ -410,7 +415,7 @@ func (app *app) post_edit_contact_handler(w http.ResponseWriter, r *http.Request
 		// Update contact in DB
 		err := update_contact(app.mongo_client, c, get_username(r.Context()))
 		if err != nil {
-			http.Error(w, "Error updating contact in DB", http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("edit_contact_post_handler: error in update_contact()", "error", err)
 			return
 		}
@@ -439,7 +444,7 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	contact, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 	if err != nil {
-		http.Error(w, "Error finding contact", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("delete_contact_handler: error in find_contact_id", "error", err)
 		return
 	}
@@ -448,7 +453,7 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 		// Delete contact
 		err = delete_contact(app.mongo_client, get_username(r.Context()), id_int)
 		if err != nil {
-			http.Error(w, "Error deleting contact", http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("delete_contact_handler: error in delete_contact", "error", err)
 			return
 		}
@@ -462,7 +467,7 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 			contacts_list, err := app.get_contact_page(1, get_username(r.Context()))
 			if err != nil {
-				http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				log.Error("delete_contact_handler: error in get_contact_list", "error", err)
 				return
 			}
@@ -474,7 +479,7 @@ func (app *app) delete_contact_handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// We cannot delete contact, which should always be possible form this endpoint
-	http.Error(w, "Error deleting contact", http.StatusInternalServerError)
+	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	log.Error("delete_contact_handler: contact not found")
 }
 
@@ -491,7 +496,7 @@ func (app *app) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	}
 	count := len(contacts)
 
-	_, err = w.Write([]byte(get_username(r.Context()) + ", you have " + strconv.Itoa(count) + "contacts"))
+	_, err = w.Write([]byte(get_username(r.Context()) + ", you have " + strconv.Itoa(count) + " contacts"))
 	if err != nil {
 		http.Error(w, "Error, could not write response", http.StatusInternalServerError)
 		log.Error("count_contacts_handler: error in  w.Write()", "error", err)
@@ -514,10 +519,10 @@ func (app *app) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.
 	var ids_int []int
 
 	// Parse array
-	for i, id_string := range ids {
+	for _, id_string := range ids {
 		id_int, err := strconv.Atoi(id_string)
 		if err != nil {
-			http.Error(w, "Error, id nº "+strconv.Itoa(i)+", id must be an integer", http.StatusBadRequest)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("delete_multiple_contacts_handler: error in strconv.Atoi(id)", "error", err)
 			return
 		}
@@ -528,7 +533,7 @@ func (app *app) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.
 	for _, id_int := range ids_int {
 		err = delete_contact(app.mongo_client, get_username(r.Context()), id_int)
 		if err != nil {
-			http.Error(w, "Error deleting contact with id "+strconv.Itoa(id_int), http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("delete_multiple_contacts_handler: error in delete_contact", "error", err, "id", id_int)
 			return
 		}
@@ -538,7 +543,7 @@ func (app *app) delete_multiple_contacts_handler(w http.ResponseWriter, r *http.
 
 	contact_list, err := app.get_contact_page(1, get_username(r.Context()))
 	if err != nil {
-		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("delete_multiple_contacts_handler: error in get_contact_list", "error", err)
 		return
 	}
@@ -560,7 +565,7 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 
 	c, err := find_contact_id(app.mongo_client, username, id_int)
 	if err != nil {
-		http.Error(w, "Error, contact not found", http.StatusBadRequest)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("validate_email_handler: error in find_contact", "error", err)
 		return
 	}
@@ -568,7 +573,7 @@ func (app *app) validate_email_handler(w http.ResponseWriter, r *http.Request) {
 	// Check email is unique
 	contacts, err := get_user_contacts(app.mongo_client, username)
 	if err != nil {
-		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("validate_email_handler: error in get_contacts_from_user", "error", err)
 		return
 	}
@@ -612,7 +617,7 @@ func (app *app) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 
 	contacts, err := get_user_contacts_db(app.mongo_client, get_username(r.Context()))
 	if err != nil {
-		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("archive_file_handler: error in get_contacts_from_user_contacts_db", "error", err)
 		return
 	}
@@ -622,7 +627,7 @@ func (app *app) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 
 	_, err = w.Write(json_file.([]byte))
 	if err != nil {
-		http.Error(w, "Error writing response", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("archive_file_handler: error in w.Write(json_data)", "error", err)
 		return
 	}
@@ -641,7 +646,7 @@ func (app *app) sign_in_handler(w http.ResponseWriter, r *http.Request) {
 	// Check credentials
 	user, err := find_user(app.mongo_client, username)
 	if err != nil {
-		http.Error(w, "Error checking user existence", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("sign_in_handler: error in find_user", "error", err)
 		return
 	}
@@ -699,7 +704,7 @@ func (app *app) logout_handler(w http.ResponseWriter, r *http.Request) {
 
 	err = delete_session(app.mongo_client, cookie.Value)
 	if err != nil {
-		http.Error(w, "Error deleting session", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("logout_handler: error in delete_session", "error", err)
 		return
 	}
@@ -738,7 +743,7 @@ func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
 	// Check if user already exists
 	user, err := find_user(app.mongo_client, username)
 	if err != nil {
-		http.Error(w, "Error checking user existence", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("post_register_handler: error in find_user", "error", err)
 		return
 	}
@@ -751,13 +756,13 @@ func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
 	// insert user in DB hashed password
 	hashed_password, err := bcrypt.GenerateFromPassword([]byte(password), 8)
 	if err != nil {
-		http.Error(w, "Error hashing password", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("post_register_handler: error in bcrypt.GenerateFromPassword", "error", err)
 		return
 	}
 	err = insert_user(app.mongo_client, username, string(hashed_password))
 	if err != nil {
-		http.Error(w, "Error registering user", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("post_register_handler: error in insert_user_db", "error", err)
 		return
 	}
@@ -769,7 +774,7 @@ func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
 	expires_at := time.Now().Add(120 * time.Second)
 	err = insert_session(app.mongo_client, session_token, username, expires_at)
 	if err != nil {
-		http.Error(w, "Error creating session", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("post_register_handler: error in insert_session", "error", err)
 		return
 	}
@@ -782,7 +787,7 @@ func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
 
 	contact_list, err := app.get_contact_page(1, username)
 	if err != nil {
-		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("post_register_handler: error in get_contact_list", "error", err)
 		return
 	}
@@ -807,14 +812,14 @@ func (app *app) get_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
 	if err != nil {
-		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("get_contacts_handler: error in get_user_contacts", "error", err)
 		return
 	}
 
 	jsonData, err := json.Marshal(contacts)
 	if err != nil {
-		http.Error(w, "Error converting contacts into JSON", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("get_contacts_handler: error in json.Marshal(contacts)", "error", err)
 		return
 	}
@@ -822,7 +827,7 @@ func (app *app) get_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(jsonData)
 	if err != nil {
-		http.Error(w, "Error writing response", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("get_contacts_handler: error in w.Write(jsonData)", "error", err)
 		return
 	}
@@ -833,7 +838,7 @@ func (app *app) post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 
 	user_contacts_db, err := get_user_contacts_db(app.mongo_client, get_username(r.Context()))
 	if err != nil {
-		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("post_contacts_handler: error in get_contacts_from_user", "error", err)
 		return
 	}
@@ -881,7 +886,7 @@ func (app *app) post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	if len(c.Errors) == 0 {
 		err := insert_contact(app.mongo_client, c, get_username(r.Context()))
 		if err != nil {
-			http.Error(w, "Error inserting contact in DB", http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("post_contacts_handler: error in insert_contact()", "error", err)
 			return
 		}
@@ -894,7 +899,7 @@ func (app *app) post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 		json_success_response, _ := json.Marshal(s)
 		_, err = w.Write(json_success_response)
 		if err != nil {
-			http.Error(w, "Could not show error on screen", http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("post_contacts_handler: error in w.Write(json_success_response)", "error", err)
 			return
 		}
@@ -912,7 +917,7 @@ func (app *app) post_contacts_handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, err := w.Write(json_error_response)
 		if err != nil {
-			http.Error(w, "Could not show error on screen", http.StatusBadRequest)
+			http.Error(w, "Incorrect format", http.StatusBadRequest)
 			log.Error("post_contacts_handler: error in w.Write(json_error_response)", "error", err)
 			return
 		}
@@ -937,7 +942,7 @@ func (app *app) get_contact_handler(w http.ResponseWriter, r *http.Request) {
 	// Search for specific contact
 	c, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 	if err != nil {
-		http.Error(w, "Error, contact not found", http.StatusBadRequest)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("get_contact_handler: error in find_contact", "error", err)
 		return
 	}
@@ -949,7 +954,7 @@ func (app *app) get_contact_handler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write(jsonData)
 	if err != nil {
-		http.Error(w, "Error showing contact information", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("get_contact_handler: error in w.Write(jsonData)", "error", err)
 		return
 	}
@@ -979,7 +984,7 @@ func (app *app) put_contact_handler(w http.ResponseWriter, r *http.Request) {
 
 	contacts, err := get_user_contacts(app.mongo_client, get_username(r.Context()))
 	if err != nil {
-		http.Error(w, "Error getting contacts", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("put_contact_handler: error in get_contacts_from_user_contacts_db", "error", err)
 		return
 	}
@@ -1004,7 +1009,7 @@ func (app *app) put_contact_handler(w http.ResponseWriter, r *http.Request) {
 		// Search for c to edit
 		contact, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 		if err != nil {
-			http.Error(w, "Error, contact not found", http.StatusBadRequest)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("put_contact_handler: error in find_contact", "error", err)
 			return
 		}
@@ -1026,7 +1031,7 @@ func (app *app) put_contact_handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, err = w.Write(json_success_response)
 		if err != nil {
-			http.Error(w, "Could not show error on screen", http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("put_contacts_handler: error in w.Write(json_success_response)", "error", err)
 			return
 		}
@@ -1044,7 +1049,7 @@ func (app *app) put_contact_handler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		_, err := w.Write(json_error_response)
 		if err != nil {
-			http.Error(w, "Could not show error on screen", http.StatusBadRequest)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("put_contact_handler: error in w.Write(json_error_response)", "error", err)
 			return
 		}
@@ -1068,7 +1073,7 @@ func (app *app) delete_contact_handler_json(w http.ResponseWriter, r *http.Reque
 	// Delete contact
 	contact, err := find_contact_id(app.mongo_client, get_username(r.Context()), id_int)
 	if err != nil {
-		http.Error(w, "Error finding contact", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("delete_contact_handler: error in find_contact_id", "error", err)
 		return
 	}
@@ -1076,7 +1081,7 @@ func (app *app) delete_contact_handler_json(w http.ResponseWriter, r *http.Reque
 	if contact != nil {
 		err = delete_contact(app.mongo_client, get_username(r.Context()), id_int)
 		if err != nil {
-			http.Error(w, "Error deleting contact", http.StatusInternalServerError)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("delete_contact_handler: error in delete_contact", "error", err)
 			return
 		}
@@ -1089,7 +1094,7 @@ func (app *app) delete_contact_handler_json(w http.ResponseWriter, r *http.Reque
 		json_success_response, _ := json.Marshal(s)
 		_, err := w.Write(json_success_response)
 		if err != nil {
-			http.Error(w, "Could not show error on screen", http.StatusBadRequest)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			log.Error("delete_contact_handler: error in w.Write(json_success_response)", "error", err)
 			return
 		}
@@ -1108,11 +1113,11 @@ func (app *app) delete_contact_handler_json(w http.ResponseWriter, r *http.Reque
 	w.WriteHeader(http.StatusBadRequest)
 	_, err = w.Write(json_error_response)
 	if err != nil {
-		http.Error(w, "Could not show error on screen", http.StatusInternalServerError)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		log.Error("delete_contact_handler: error in w.Write(jsonData)", "error", err)
 		return
 	}
 
-	http.Error(w, "Error deleting contact", http.StatusInternalServerError)
+	http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	log.Error("delete_contact: contact not found")
 }
