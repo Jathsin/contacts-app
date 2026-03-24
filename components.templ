@@ -53,10 +53,12 @@ templ layout(c templ.Component) {
 	</html>
 }
 
-templ con_boton_tema(contenido templ.Component, a templ.Component) {
+templ con_boton_tema(contenido templ.Component) {
 	// Plantilla envuelta por botón cambio de tema
-	<div id="session" class="relative flex flex-col items-center p-4 mx-[40px] my-[40px] gap-3">
-		// Botón cambio de tema
+	<div id="session" class="relative flex items-center p-4 mx-7 mt-2 gap-3">
+		//Logo
+		<all-caps class="font-mono">contacts.app</all-caps>
+		// Boton tema
 		<button
 			type="button"
 			aria-label="Toggle dark mode"
@@ -70,28 +72,72 @@ templ con_boton_tema(contenido templ.Component, a templ.Component) {
 				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
 			</span>
 		</button>
-		// Motto ó profile_card
-		@a
+		<div id="usuario-popover" class="popover">
+			<button
+				id="usuario-button"
+				type="button"
+				aria-expanded="false"
+				aria-controls="usuario-popover-popover"
+				class="btn-ghost p-2 h-12 w-full flex items-center justify-start"
+				data-keep-mobile-sidebar-open=""
+			>
+				<img class="size-8 shrink-0 object-cover rounded-lg" alt="@shadcn" src="https://github.com/shadcn.png"/>
+				<div class="grid flex-1 text-left text-sm leading-tight">
+					<span class="truncate font-medium">usuario</span>
+					<span class="truncate text-xs">username</span>
+				</div>
+				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"></path><path d="m7 9 5-5 5 5"></path></svg>
+			</button>
+			<div
+				id="usuario-popover-popover"
+				data-popover=""
+				aria-hidden="true"
+				data-side="bottom"
+				data-align="end"
+				class="w-[271px] md:w-[239px]"
+			>
+				<div class="grid gap-4">
+					// <header class="grid gap-1.5">
+					// 	<h2 class="font-semibold">I hope you like Basecoat...</h2>
+					// 	<p class="text-muted-foreground text-sm">My name is <a href="https://ronanberder.com" target="_blank">Ronan</a> and I made this (and <a class="underline underline-offset-4" href="https://pagescms.org" target="_target">other things</a>). If you find it useful, please consider sponsoring me on GitHub or following me on X.</p>
+					// </header>
+					<footer class="grid gap-2">
+						<a href="" class="btn-sm">Configuración</a>
+						<button
+							class="btn-sm-outline"
+							type="button"
+							onclick="document.getElementById('logout-dialog').showModal()"
+						>Cerrar sesión</button>
+					</footer>
+				</div>
+			</div>
+		</div>
 	</div>
+	<dialog
+		id="logout-dialog"
+		class="	dialog 
+					fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full m-0 p-5
+					rounded-[15px]
+					sm:max-w-[425px] max-h-[612px]"
+		aria-labelledby="logout-dialog-title"
+		aria-describedby="logout-dialog-description"
+	>
+		<div class="flex flex-col gap-5">
+			<header>
+				<h2 id="logout-dialog-title">Are you sure you want to log out?</h2>
+			</header>
+			<footer class="flex flex-row gap-3">
+				<button class="btn-outline" onclick="document.getElementById('logout-dialog').close()">Cancel</button>
+				<button type="button" class="btn-destructive" hx-post="/logout" hx-target="body" hx-swap="outerHTML" hx-push-url="/contacts">Logout</button>
+			</footer>
+		</div>
+	</dialog>
 	@contenido
 }
 
 templ index(contact_list []Contact, query string, page int, archive archiver.Archiver, flash_message string) {
 	<main class="mx-auto max-w-[600px] mb-20">
-		<div class="flex flex-col gap-y-5">
-			<span class="ml-[40px] text-black/80" hx-get="/contacts/count" hx-trigger="load, contacts-changed from:body">
-				<button class="btn-outline" disabled>
-					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
-					<span>Loading</span>
-				</button>
-			</span>
-			// <header class="text-center mb-[50px]">
-			// 	<h1>
-			// 		<all-caps class="font-mono">contacts.app</all-caps>
-			// 	</h1>
-			// 	<sub-title>A Demo Contacts Application</sub-title>
-			// </header>
-			// flash messages
+		<div class="flex flex-col gap-y-5 mt-10">
 			if flash_message != "" {
 				<div
 					if strings.Contains(flash_message, "deleted") {
@@ -104,14 +150,8 @@ templ index(contact_list []Contact, query string, page int, archive archiver.Arc
 					<h2>{ flash_message }</h2>
 				</div>
 			}
-			<div class="flex flex-col gap-y-10">
-				<div id="aux_bar_section">
-					// used to clear after contacts download
-					<div id="bar_section" class="flex flex-row gap-4 w-full">
-						@archive_ui(archive)
-						@search_bar(query)
-					</div>
-				</div>
+			<div class="flex flex-col">
+				@bar_section(query, archive)
 				<div id="download_archiver"></div>
 				@contact_table(page, contact_list)
 			</div>
@@ -120,11 +160,17 @@ templ index(contact_list []Contact, query string, page int, archive archiver.Arc
 }
 
 templ bar_section(query string, archive archiver.Archiver) {
-	<div id="aux_bar_section">
+	<div id="aux_bar_section" class="flex flex-col">
 		// used to clear after contacts download
 		<div id="bar_section" class="flex flex-row gap-4 items-center w-full">
-			@archive_ui(archive)
 			@search_bar(query)
+			<span class="ml-[40px] text-black/80 badge-outline" hx-get="/contacts/count" hx-trigger="load, contacts-changed from:body">
+				<button class="btn-outline" disabled>
+					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M12 2v4"></path><path d="m16.2 7.8 2.9-2.9"></path><path d="M18 12h4"></path><path d="m16.2 16.2 2.9 2.9"></path><path d="M12 18v4"></path><path d="m4.9 19.1 2.9-2.9"></path><path d="M2 12h4"></path><path d="m4.9 4.9 2.9 2.9"></path></svg>
+					<span>Loading</span>
+				</button>
+			</span>
+			@archive_ui(archive)
 		</div>
 	</div>
 }
@@ -628,84 +674,62 @@ templ register(error_message string) {
 					</div>
 					<button type="submit" class="btn w-full">Sign up</button>
 				</form>
-				// 				<footer class="flex flex-col items-center gap-2">
-				// 					<p class="mt-4 text-center text-sm">
-				// 						Don't have an account? <a
-				// 	hx-get="/register"
-				// 	hx-target="body"
-				// 	hx-swap="outerHTML"
-				// 	hx-push-url="true"
-				// 	class="underline-offset-4 hover:underline"
-				// >Log in</a>
-				// 					</p>
-				// 				</footer>
 			</section>
 			<p class="px-7 text-sm flex flex-row">
 				Already have an account?&nbsp;
-				<a
-					onclick="document.getElementById('auth-dialog').showModal()"
-					class="cursor-pointer hover:underline"
-				>
+				<a href="/sign-in">
 					Log in
 				</a>
 			</p>
-			<dialog
-				id="auth-dialog"
-				class="
-					dialog 
-					fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full m-0
-					rounded-[15px]
-					sm:max-w-[425px] max-h-[612px]
-				"
-				aria-labelledby="auth-dialog-title"
-				aria-describedby="auth-dialog-description"
-				onclick="if (event.target === this) this.close()"
-			>
-				<div class="card w-full">
-					<header>
-						<h2>Log in to your account</h2>
-						<p>Enter your details below to log in to your account</p>
-					</header>
-					<section>
-						<form
-							class="form grid gap-6"
-							hx-post="/sign-in"
-							hx-target="#auth-error-message"
-							hx-swap="outerHTML"
-							hx-push-url="/contacts"
-						>
-							<div class="grid gap-2">
-								<label for="username">Username</label>
-								<input type="text" id="username" name="username"/>
-							</div>
-							<div class="grid gap-2">
-								<label for="password">Password</label>
-								<input type="password" id="password" name="password"/>
-							</div>
-							<span id="auth-error-message" class="error text-sm">
-								{ error_message }
-							</span>
-							<button type="submit" class="btn w-full" hx-post="/sign-in">
-								Log in
-							</button>
-						</form>
-					</section>
-					<footer class="flex flex-col items-center gap-2">
-						<p class="mt-4 text-sm text-center ">
-							Don't have an account? 
-							<a
-								hx-get="/register"
-								hx-target="body"
-								hx-swap="outerHTML"
-								hx-push-url="true"
-								class="underline-offset-4 hover:underline"
-							>Sign up</a>
-						</p>
-					</footer>
-				</div>
-			</dialog>
 		</div>
 	</main>
+}
+
+templ login(error_message string) {
+	<div class="flex justify-center">
+		<div class="card w-95 mt-20">
+			<header>
+				<h2>Log in to your account</h2>
+				<p>Enter your details below to log in to your account</p>
+			</header>
+			<section>
+				<form
+					class="form grid gap-6"
+					hx-post="/sign-in"
+					hx-target="#auth-error-message"
+					hx-swap="outerHTML"
+					hx-push-url="/contacts"
+				>
+					<div class="grid gap-2">
+						<label for="username">Username</label>
+						<input type="text" id="username" name="username"/>
+					</div>
+					<div class="grid gap-2">
+						<label for="password">Password</label>
+						<input type="password" id="password" name="password"/>
+					</div>
+					<span id="auth-error-message" class="error text-sm">
+						{ error_message }
+					</span>
+					<button type="submit" class="btn w-full" hx-post="/sign-in">
+						Log in
+					</button>
+				</form>
+			</section>
+			<footer class="flex flex-col items-center gap-2">
+				<p class="mt-4 text-sm text-center ">
+					Don't have an account? 
+					<a
+						hx-get="/register"
+						hx-target="body"
+						hx-swap="outerHTML"
+						hx-push-url="true"
+						class="underline-offset-4 hover:underline"
+					>Sign up</a>
+				</p>
+			</footer>
+		</div>
+	</div>
 }
 
 templ profile_card(username string) {

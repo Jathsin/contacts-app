@@ -120,11 +120,11 @@ func (app *app) auth(f http.HandlerFunc) http.Handler {
 				http.Error(w, "Error deleting session", http.StatusInternalServerError)
 				log.Error("auth: error in delete_expired_sessions", "error", err)
 			}
-			redirect_register(w, r)
+			http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
 			return
 		} else if err != nil {
 			log.Error("auth: error retrieving session cookie", "error", err)
-			redirect_register(w, r)
+			http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
 			return
 		}
 
@@ -134,12 +134,12 @@ func (app *app) auth(f http.HandlerFunc) http.Handler {
 		if err != nil {
 			http.Error(w, "Error finding session", http.StatusInternalServerError)
 			log.Error("auth: error in find_session", "error", err)
-			redirect_register(w, r)
+			http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
 			return
 		}
 
 		if current_session == nil {
-			redirect_register(w, r)
+			http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
 			return
 		}
 
@@ -152,7 +152,7 @@ func (app *app) auth(f http.HandlerFunc) http.Handler {
 			if err != nil {
 				http.Error(w, "Error updating session expiry", http.StatusInternalServerError)
 				log.Error("auth: error in update_session_expiry", "error", err)
-				redirect_register(w, r)
+				http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
 				return
 			}
 
@@ -164,7 +164,7 @@ func (app *app) auth(f http.HandlerFunc) http.Handler {
 
 		} else if current_session.is_expired() {
 			// even if the browser doesn´t, some user might send expired cookies
-			redirect_register(w, r)
+			http.Redirect(w, r, "/sign-in", http.StatusSeeOther)
 			return
 		}
 

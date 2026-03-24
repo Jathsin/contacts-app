@@ -51,7 +51,7 @@ func layout(c templ.Component) templ.Component {
 	})
 }
 
-func con_boton_tema(contenido templ.Component, a templ.Component) templ.Component {
+func con_boton_tema(contenido templ.Component) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -72,15 +72,7 @@ func con_boton_tema(contenido templ.Component, a templ.Component) templ.Componen
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div id=\"session\" class=\"relative flex flex-col items-center p-4 mx-[40px] my-[40px] gap-3\"><button type=\"button\" aria-label=\"Toggle dark mode\" onclick=\"document.dispatchEvent(new CustomEvent('basecoat:theme'))\" class=\"btn-icon-outline size-8 ml-auto\"><span class=\"hidden dark:block\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"4\"></circle><path d=\"M12 2v2\"></path><path d=\"M12 20v2\"></path><path d=\"m4.93 4.93 1.41 1.41\"></path><path d=\"m17.66 17.66 1.41 1.41\"></path><path d=\"M2 12h2\"></path><path d=\"M20 12h2\"></path><path d=\"m6.34 17.66-1.41 1.41\"></path><path d=\"m19.07 4.93-1.41 1.41\"></path></svg></span> <span class=\"block dark:hidden\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z\"></path></svg></span></button>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = a.Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "</div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div id=\"session\" class=\"relative flex items-center p-4 mx-7 mt-2 gap-3\"><all-caps class=\"font-mono\">contacts.app</all-caps><button type=\"button\" aria-label=\"Toggle dark mode\" onclick=\"document.dispatchEvent(new CustomEvent('basecoat:theme'))\" class=\"btn-icon-outline size-8 ml-auto\"><span class=\"hidden dark:block\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"4\"></circle><path d=\"M12 2v2\"></path><path d=\"M12 20v2\"></path><path d=\"m4.93 4.93 1.41 1.41\"></path><path d=\"m17.66 17.66 1.41 1.41\"></path><path d=\"M2 12h2\"></path><path d=\"M20 12h2\"></path><path d=\"m6.34 17.66-1.41 1.41\"></path><path d=\"m19.07 4.93-1.41 1.41\"></path></svg></span> <span class=\"block dark:hidden\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z\"></path></svg></span></button><div id=\"usuario-popover\" class=\"popover\"><button id=\"usuario-button\" type=\"button\" aria-expanded=\"false\" aria-controls=\"usuario-popover-popover\" class=\"btn-ghost p-2 h-12 w-full flex items-center justify-start\" data-keep-mobile-sidebar-open=\"\"><img class=\"size-8 shrink-0 object-cover rounded-lg\" alt=\"@shadcn\" src=\"https://github.com/shadcn.png\"><div class=\"grid flex-1 text-left text-sm leading-tight\"><span class=\"truncate font-medium\">usuario</span> <span class=\"truncate text-xs\">username</span></div><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m7 15 5 5 5-5\"></path><path d=\"m7 9 5-5 5 5\"></path></svg></button><div id=\"usuario-popover-popover\" data-popover=\"\" aria-hidden=\"true\" data-side=\"bottom\" data-align=\"end\" class=\"w-[271px] md:w-[239px]\"><div class=\"grid gap-4\"><footer class=\"grid gap-2\"><a href=\"\" class=\"btn-sm\">Configuración</a> <button class=\"btn-sm-outline\" type=\"button\" onclick=\"document.getElementById('logout-dialog').showModal()\">Cerrar sesión</button></footer></div></div></div></div><dialog id=\"logout-dialog\" class=\"\tdialog \n\t\t\t\t\tfixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full m-0 p-5\n\t\t\t\t\trounded-[15px]\n\t\t\t\t\tsm:max-w-[425px] max-h-[612px]\" aria-labelledby=\"logout-dialog-title\" aria-describedby=\"logout-dialog-description\"><div class=\"flex flex-col gap-5\"><header><h2 id=\"logout-dialog-title\">Are you sure you want to log out?</h2></header><footer class=\"flex flex-row gap-3\"><button class=\"btn-outline\" onclick=\"document.getElementById('logout-dialog').close()\">Cancel</button> <button type=\"button\" class=\"btn-destructive\" hx-post=\"/logout\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"/contacts\">Logout</button></footer></div></dialog>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -113,57 +105,53 @@ func index(contact_list []Contact, query string, page int, archive archiver.Arch
 			templ_7745c5c3_Var3 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<main class=\"mx-auto max-w-[600px] mb-20\"><div class=\"flex flex-col gap-y-5\"><span class=\"ml-[40px] text-black/80\" hx-get=\"/contacts/count\" hx-trigger=\"load, contacts-changed from:body\"><button class=\"btn-outline\" disabled><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"animate-spin\"><path d=\"M12 2v4\"></path><path d=\"m16.2 7.8 2.9-2.9\"></path><path d=\"M18 12h4\"></path><path d=\"m16.2 16.2 2.9 2.9\"></path><path d=\"M12 18v4\"></path><path d=\"m4.9 19.1 2.9-2.9\"></path><path d=\"M2 12h4\"></path><path d=\"m4.9 4.9 2.9 2.9\"></path></svg> <span>Loading</span></button></span>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<main class=\"mx-auto max-w-[600px] mb-20\"><div class=\"flex flex-col gap-y-5 mt-10\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		if flash_message != "" {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "<div")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "<div")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			if strings.Contains(flash_message, "deleted") {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, " class=\"alert-destructive\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, " class=\"alert-destructive\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			} else {
-				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, " class=\"alert\"")
+				templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, " class=\"alert\"")
 				if templ_7745c5c3_Err != nil {
 					return templ_7745c5c3_Err
 				}
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle> <path d=\"m9 12 2 2 4-4\"></path></svg><h2>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"10\"></circle> <path d=\"m9 12 2 2 4-4\"></path></svg><h2>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(flash_message)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 104, Col: 24}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 150, Col: 24}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</h2></div>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</h2></div>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div class=\"flex flex-col gap-y-10\"><div id=\"aux_bar_section\"><div id=\"bar_section\" class=\"flex flex-row gap-4 w-full\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "<div class=\"flex flex-col\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = archive_ui(archive).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = bar_section(query, archive).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = search_bar(query).Render(ctx, templ_7745c5c3_Buffer)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div></div><div id=\"download_archiver\"></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "<div id=\"download_archiver\"></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -171,7 +159,7 @@ func index(contact_list []Contact, query string, page int, archive archiver.Arch
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "</div></div></main>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 12, "</div></div></main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -200,15 +188,19 @@ func bar_section(query string, archive archiver.Archiver) templ.Component {
 			templ_7745c5c3_Var5 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<div id=\"aux_bar_section\"><div id=\"bar_section\" class=\"flex flex-row gap-4 items-center w-full\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = archive_ui(archive).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 13, "<div id=\"aux_bar_section\" class=\"flex flex-col\"><div id=\"bar_section\" class=\"flex flex-row gap-4 items-center w-full\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Err = search_bar(query).Render(ctx, templ_7745c5c3_Buffer)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "<span class=\"ml-[40px] text-black/80 badge-outline\" hx-get=\"/contacts/count\" hx-trigger=\"load, contacts-changed from:body\"><button class=\"btn-outline\" disabled><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"animate-spin\"><path d=\"M12 2v4\"></path><path d=\"m16.2 7.8 2.9-2.9\"></path><path d=\"M18 12h4\"></path><path d=\"m16.2 16.2 2.9 2.9\"></path><path d=\"M12 18v4\"></path><path d=\"m4.9 19.1 2.9-2.9\"></path><path d=\"M2 12h4\"></path><path d=\"m4.9 4.9 2.9 2.9\"></path></svg> <span>Loading</span></button></span>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = archive_ui(archive).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -258,7 +250,7 @@ func archive_ui(archive archiver.Archiver) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs(archive.Progress() * 100)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 155, Col: 46}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 201, Col: 46}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 			if templ_7745c5c3_Err != nil {
@@ -271,7 +263,7 @@ func archive_ui(archive archiver.Archiver) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width:%.2f%%;", archive.Progress()*100))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 156, Col: 66}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 202, Col: 66}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -323,7 +315,7 @@ func search_bar(query string) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(query)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 194, Col: 17}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 240, Col: 17}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {
@@ -378,7 +370,7 @@ func contact_table(page int, contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var12 string
 			templ_7745c5c3_Var12, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts?page=%d", page-1))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 276, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 322, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var12))
 			if templ_7745c5c3_Err != nil {
@@ -401,7 +393,7 @@ func contact_table(page int, contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var13 string
 			templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts?page=%d", page+1))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 295, Col: 58}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 341, Col: 58}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 			if templ_7745c5c3_Err != nil {
@@ -453,7 +445,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(c.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 310, Col: 71}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 356, Col: 71}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -466,7 +458,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(c.First)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 311, Col: 17}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 357, Col: 17}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -479,7 +471,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var17 string
 			templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(c.Last)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 312, Col: 16}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 358, Col: 16}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 			if templ_7745c5c3_Err != nil {
@@ -492,7 +484,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(c.Phone)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 313, Col: 17}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 359, Col: 17}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 			if templ_7745c5c3_Err != nil {
@@ -505,7 +497,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(c.Email)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 314, Col: 17}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 360, Col: 17}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -518,7 +510,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var20 string
 			templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("contact-menu-%d", c.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 338, Col: 101}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 384, Col: 101}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 			if templ_7745c5c3_Err != nil {
@@ -531,7 +523,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var21 string
 			templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts/%d/edit", c.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 339, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 385, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 			if templ_7745c5c3_Err != nil {
@@ -544,7 +536,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var22 string
 			templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts/%d/edit", c.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 339, Col: 151}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 385, Col: 151}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 			if templ_7745c5c3_Err != nil {
@@ -557,7 +549,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts/%d", c.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 347, Col: 54}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 393, Col: 54}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -570,7 +562,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts/%d", c.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 347, Col: 141}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 393, Col: 141}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
@@ -583,7 +575,7 @@ func rows(contact_list []Contact) templ.Component {
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts/%d", c.ID))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 357, Col: 55}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 403, Col: 55}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 			if templ_7745c5c3_Err != nil {
@@ -630,7 +622,7 @@ func show(c Contact) templ.Component {
 		var templ_7745c5c3_Var27 string
 		templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(c.First)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 386, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 432, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 		if templ_7745c5c3_Err != nil {
@@ -643,7 +635,7 @@ func show(c Contact) templ.Component {
 		var templ_7745c5c3_Var28 string
 		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(c.Last)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 386, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 432, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
@@ -656,7 +648,7 @@ func show(c Contact) templ.Component {
 		var templ_7745c5c3_Var29 string
 		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(c.Phone)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 389, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 435, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 		if templ_7745c5c3_Err != nil {
@@ -669,7 +661,7 @@ func show(c Contact) templ.Component {
 		var templ_7745c5c3_Var30 string
 		templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(c.Email)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 390, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 436, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 		if templ_7745c5c3_Err != nil {
@@ -682,7 +674,7 @@ func show(c Contact) templ.Component {
 		var templ_7745c5c3_Var31 string
 		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts/%d/edit", c.ID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 394, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 440, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 		if templ_7745c5c3_Err != nil {
@@ -724,7 +716,7 @@ func new_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var33 string
 		templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(c.Email)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 408, Col: 88}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 454, Col: 88}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 		if templ_7745c5c3_Err != nil {
@@ -737,7 +729,7 @@ func new_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var34 string
 		templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(c.Errors["email"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 409, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 455, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 		if templ_7745c5c3_Err != nil {
@@ -750,7 +742,7 @@ func new_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templ.JoinStringErrs(c.First)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 421, Col: 23}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 467, Col: 23}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 		if templ_7745c5c3_Err != nil {
@@ -763,7 +755,7 @@ func new_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var36 string
 		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(c.Errors["first"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 423, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 469, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 		if templ_7745c5c3_Err != nil {
@@ -776,7 +768,7 @@ func new_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var37 string
 		templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(c.Last)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 435, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 481, Col: 22}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 		if templ_7745c5c3_Err != nil {
@@ -789,7 +781,7 @@ func new_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var38 string
 		templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(c.Errors["last"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 437, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 483, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 		if templ_7745c5c3_Err != nil {
@@ -802,7 +794,7 @@ func new_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var39 string
 		templ_7745c5c3_Var39, templ_7745c5c3_Err = templ.JoinStringErrs(c.Phone)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 443, Col: 98}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 489, Col: 98}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var39))
 		if templ_7745c5c3_Err != nil {
@@ -815,7 +807,7 @@ func new_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var40 string
 		templ_7745c5c3_Var40, templ_7745c5c3_Err = templ.JoinStringErrs(c.Errors["phone"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 444, Col: 46}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 490, Col: 46}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 		if templ_7745c5c3_Err != nil {
@@ -857,7 +849,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var42 templ.SafeURL
 		templ_7745c5c3_Var42, templ_7745c5c3_Err = templ.JoinURLErrs(fmt.Sprintf("/contacts/%d/edit", c.ID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 459, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 505, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var42))
 		if templ_7745c5c3_Err != nil {
@@ -870,7 +862,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var43 string
 		templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts/%d/edit", c.ID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 459, Col: 120}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 505, Col: 120}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 		if templ_7745c5c3_Err != nil {
@@ -883,7 +875,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var44 string
 		templ_7745c5c3_Var44, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts/%d", c.ID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 459, Col: 207}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 505, Col: 207}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var44))
 		if templ_7745c5c3_Err != nil {
@@ -896,7 +888,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var45 string
 		templ_7745c5c3_Var45, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts/%d/email", c.ID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 479, Col: 55}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 525, Col: 55}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var45))
 		if templ_7745c5c3_Err != nil {
@@ -909,7 +901,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var46 string
 		templ_7745c5c3_Var46, templ_7745c5c3_Err = templ.JoinStringErrs(c.Email)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 483, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 529, Col: 22}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var46))
 		if templ_7745c5c3_Err != nil {
@@ -922,7 +914,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var47 string
 		templ_7745c5c3_Var47, templ_7745c5c3_Err = templ.JoinStringErrs(c.Errors["email"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 485, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 531, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var47))
 		if templ_7745c5c3_Err != nil {
@@ -935,7 +927,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var48 string
 		templ_7745c5c3_Var48, templ_7745c5c3_Err = templ.JoinStringErrs(c.First)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 497, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 543, Col: 22}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var48))
 		if templ_7745c5c3_Err != nil {
@@ -948,7 +940,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var49 string
 		templ_7745c5c3_Var49, templ_7745c5c3_Err = templ.JoinStringErrs(c.Errors["first"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 499, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 545, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var49))
 		if templ_7745c5c3_Err != nil {
@@ -961,7 +953,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var50 string
 		templ_7745c5c3_Var50, templ_7745c5c3_Err = templ.JoinStringErrs(c.Last)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 511, Col: 21}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 557, Col: 21}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var50))
 		if templ_7745c5c3_Err != nil {
@@ -974,7 +966,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var51 string
 		templ_7745c5c3_Var51, templ_7745c5c3_Err = templ.JoinStringErrs(c.Errors["last"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 513, Col: 44}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 559, Col: 44}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var51))
 		if templ_7745c5c3_Err != nil {
@@ -987,7 +979,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var52 string
 		templ_7745c5c3_Var52, templ_7745c5c3_Err = templ.JoinStringErrs(c.Phone)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 525, Col: 22}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 571, Col: 22}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var52))
 		if templ_7745c5c3_Err != nil {
@@ -1000,7 +992,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var53 string
 		templ_7745c5c3_Var53, templ_7745c5c3_Err = templ.JoinStringErrs(c.Errors["phone"])
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 527, Col: 45}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 573, Col: 45}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var53))
 		if templ_7745c5c3_Err != nil {
@@ -1013,7 +1005,7 @@ func edit_contact(c Contact) templ.Component {
 		var templ_7745c5c3_Var54 string
 		templ_7745c5c3_Var54, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("/contacts/%d", c.ID))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 538, Col: 51}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 584, Col: 51}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var54))
 		if templ_7745c5c3_Err != nil {
@@ -1084,7 +1076,7 @@ func error_email(err string) templ.Component {
 		var templ_7745c5c3_Var57 string
 		templ_7745c5c3_Var57, templ_7745c5c3_Err = templ.JoinStringErrs(err)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 580, Col: 26}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 626, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var57))
 		if templ_7745c5c3_Err != nil {
@@ -1156,7 +1148,7 @@ func auth_dialog_error_message(error_message string) templ.Component {
 		var templ_7745c5c3_Var60 string
 		templ_7745c5c3_Var60, templ_7745c5c3_Err = templ.JoinStringErrs(error_message)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 596, Col: 68}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 642, Col: 68}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var60))
 		if templ_7745c5c3_Err != nil {
@@ -1198,26 +1190,55 @@ func register(error_message string) templ.Component {
 		var templ_7745c5c3_Var62 string
 		templ_7745c5c3_Var62, templ_7745c5c3_Err = templ.JoinStringErrs(error_message)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 622, Col: 49}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 668, Col: 49}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var62))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 83, "</span></div><div class=\"grid gap-2\"><label for=\"password\">Password</label> <input type=\"password\" id=\"password\" name=\"password\"></div><button type=\"submit\" class=\"btn w-full\">Sign up</button></form></section><p class=\"px-7 text-sm flex flex-row\">Already have an account?&nbsp; <a onclick=\"document.getElementById('auth-dialog').showModal()\" class=\"cursor-pointer hover:underline\">Log in</a></p><dialog id=\"auth-dialog\" class=\"\n\t\t\t\t\tdialog \n\t\t\t\t\tfixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full m-0\n\t\t\t\t\trounded-[15px]\n\t\t\t\t\tsm:max-w-[425px] max-h-[612px]\n\t\t\t\t\" aria-labelledby=\"auth-dialog-title\" aria-describedby=\"auth-dialog-description\" onclick=\"if (event.target === this) this.close()\"><div class=\"card w-full\"><header><h2>Log in to your account</h2><p>Enter your details below to log in to your account</p></header><section><form class=\"form grid gap-6\" hx-post=\"/sign-in\" hx-target=\"#auth-error-message\" hx-swap=\"outerHTML\" hx-push-url=\"/contacts\"><div class=\"grid gap-2\"><label for=\"username\">Username</label> <input type=\"text\" id=\"username\" name=\"username\"></div><div class=\"grid gap-2\"><label for=\"password\">Password</label> <input type=\"password\" id=\"password\" name=\"password\"></div><span id=\"auth-error-message\" class=\"error text-sm\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 83, "</span></div><div class=\"grid gap-2\"><label for=\"password\">Password</label> <input type=\"password\" id=\"password\" name=\"password\"></div><button type=\"submit\" class=\"btn w-full\">Sign up</button></form></section><p class=\"px-7 text-sm flex flex-row\">Already have an account?&nbsp; <a href=\"/sign-in\">Log in</a></p></div></main>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		var templ_7745c5c3_Var63 string
-		templ_7745c5c3_Var63, templ_7745c5c3_Err = templ.JoinStringErrs(error_message)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 686, Col: 23}
+		return nil
+	})
+}
+
+func login(error_message string) templ.Component {
+	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
+		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
+			return templ_7745c5c3_CtxErr
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var63))
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
+		if !templ_7745c5c3_IsBuffer {
+			defer func() {
+				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
+				if templ_7745c5c3_Err == nil {
+					templ_7745c5c3_Err = templ_7745c5c3_BufErr
+				}
+			}()
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var63 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var63 == nil {
+			templ_7745c5c3_Var63 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 84, "<div class=\"flex justify-center\"><div class=\"card w-95 mt-20\"><header><h2>Log in to your account</h2><p>Enter your details below to log in to your account</p></header><section><form class=\"form grid gap-6\" hx-post=\"/sign-in\" hx-target=\"#auth-error-message\" hx-swap=\"outerHTML\" hx-push-url=\"/contacts\"><div class=\"grid gap-2\"><label for=\"username\">Username</label> <input type=\"text\" id=\"username\" name=\"username\"></div><div class=\"grid gap-2\"><label for=\"password\">Password</label> <input type=\"password\" id=\"password\" name=\"password\"></div><span id=\"auth-error-message\" class=\"error text-sm\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 84, "</span> <button type=\"submit\" class=\"btn w-full\" hx-post=\"/sign-in\">Log in</button></form></section><footer class=\"flex flex-col items-center gap-2\"><p class=\"mt-4 text-sm text-center \">Don't have an account?  <a hx-get=\"/register\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"true\" class=\"underline-offset-4 hover:underline\">Sign up</a></p></footer></div></dialog></div></main>")
+		var templ_7745c5c3_Var64 string
+		templ_7745c5c3_Var64, templ_7745c5c3_Err = templ.JoinStringErrs(error_message)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 712, Col: 21}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var64))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 85, "</span> <button type=\"submit\" class=\"btn w-full\" hx-post=\"/sign-in\">Log in</button></form></section><footer class=\"flex flex-col items-center gap-2\"><p class=\"mt-4 text-sm text-center \">Don't have an account?  <a hx-get=\"/register\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"true\" class=\"underline-offset-4 hover:underline\">Sign up</a></p></footer></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -1241,38 +1262,38 @@ func profile_card(username string) templ.Component {
 			}()
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var64 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var64 == nil {
-			templ_7745c5c3_Var64 = templ.NopComponent
+		templ_7745c5c3_Var65 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var65 == nil {
+			templ_7745c5c3_Var65 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 85, "<div class=\"w-full flex items-center justify-end\"><button type=\"button\" onclick=\"document.getElementById('alert-dialog').showModal()\" class=\"cursor-pointer\" data-tooltip=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var65 string
-		templ_7745c5c3_Var65, templ_7745c5c3_Err = templ.JoinStringErrs(username)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 717, Col: 26}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var65))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 86, "\" data-side=\"bottom\"><img class=\"size-8 shrink-0 object-cover rounded-lg\" alt=\"@shadcn\" src=\"https://github.com/shadcn.png\"></button> <dialog id=\"alert-dialog\" class=\"\tdialog \n\t\t\t\t\tfixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full m-0 p-5\n\t\t\t\t\trounded-[15px]\n\t\t\t\t\tsm:max-w-[425px] max-h-[612px]\" aria-labelledby=\"alert-dialog-title\" aria-describedby=\"alert-dialog-description\"><div class=\"flex flex-col gap-5\"><header><h2 id=\"alert-dialog-title\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 86, "<div class=\"w-full flex items-center justify-end\"><button type=\"button\" onclick=\"document.getElementById('alert-dialog').showModal()\" class=\"cursor-pointer\" data-tooltip=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var66 string
 		templ_7745c5c3_Var66, templ_7745c5c3_Err = templ.JoinStringErrs(username)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 733, Col: 43}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 741, Col: 26}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var66))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, ", are you sure you want to end this session?</h2></header><footer class=\"flex flex-row gap-3\"><button class=\"btn-outline\" onclick=\"document.getElementById('alert-dialog').close()\">Cancel</button> <button type=\"button\" class=\"btn-destructive\" hx-post=\"/logout\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"/contacts\">Logout</button></footer></div></dialog></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 87, "\" data-side=\"bottom\"><img class=\"size-8 shrink-0 object-cover rounded-lg\" alt=\"@shadcn\" src=\"https://github.com/shadcn.png\"></button> <dialog id=\"alert-dialog\" class=\"\tdialog \n\t\t\t\t\tfixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full m-0 p-5\n\t\t\t\t\trounded-[15px]\n\t\t\t\t\tsm:max-w-[425px] max-h-[612px]\" aria-labelledby=\"alert-dialog-title\" aria-describedby=\"alert-dialog-description\"><div class=\"flex flex-col gap-5\"><header><h2 id=\"alert-dialog-title\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		var templ_7745c5c3_Var67 string
+		templ_7745c5c3_Var67, templ_7745c5c3_Err = templ.JoinStringErrs(username)
+		if templ_7745c5c3_Err != nil {
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `components.templ`, Line: 757, Col: 43}
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var67))
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 88, ", are you sure you want to end this session?</h2></header><footer class=\"flex flex-row gap-3\"><button class=\"btn-outline\" onclick=\"document.getElementById('alert-dialog').close()\">Cancel</button> <button type=\"button\" class=\"btn-destructive\" hx-post=\"/logout\" hx-target=\"body\" hx-swap=\"outerHTML\" hx-push-url=\"/contacts\">Logout</button></footer></div></dialog></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -60,7 +60,7 @@ func main() {
 
 	// hypermedia api
 	mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/register", http.StatusFound)
+		http.Redirect(w, r, "/contacts", http.StatusFound)
 	})
 
 	mux.Handle("GET /contacts", app.auth(app.contact_query_handler))
@@ -94,6 +94,8 @@ func main() {
 	// Auth api
 
 	mux.HandleFunc("POST /sign-in", app.sign_in_handler)
+
+	mux.HandleFunc("GET /sign-in", app.get_sign_in_handler)
 
 	mux.HandleFunc("POST /logout", app.logout_handler)
 
@@ -157,7 +159,7 @@ func (app *app) contact_query_handler(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("HX-Request") == "true" {
 			templ.Handler(index(contact_list, "", page, myArchiver, ""), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		} else {
-			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver, ""), profile_card(get_username(r.Context())))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+			templ.Handler(layout(con_boton_tema(index(contact_list, "", page, myArchiver, ""))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		}
 		return
 	}
@@ -233,7 +235,7 @@ func (app *app) contact_id_handler(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("HX-Request") == "true" {
 		templ.Handler(show(*c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(show(*c), profile_card(get_username(r.Context())))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(show(*c))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 
 	// s := show(*c)
@@ -362,7 +364,7 @@ func (app *app) get_edit_contact_handler(w http.ResponseWriter, r *http.Request)
 	if r.Header.Get("HX-Request") == "true" {
 		templ.Handler(edit_contact(*c), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(edit_contact(*c), profile_card(get_username(r.Context())))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(edit_contact(*c))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 }
 
@@ -496,7 +498,7 @@ func (app *app) count_contacts_handler(w http.ResponseWriter, r *http.Request) {
 	}
 	count := len(contacts)
 
-	_, err = w.Write([]byte(get_username(r.Context()) + ", you have " + strconv.Itoa(count) + " contacts"))
+	_, err = w.Write([]byte(strconv.Itoa(count)))
 	if err != nil {
 		http.Error(w, "Error, could not write response", http.StatusInternalServerError)
 		log.Error("count_contacts_handler: error in  w.Write()", "error", err)
@@ -637,6 +639,13 @@ func (app *app) archive_file_handler(w http.ResponseWriter, r *http.Request) {
 
 const error_message_credentials = "Invalid username or password"
 
+// GET /sign-in
+
+func (app *app) get_sign_in_handler(w http.ResponseWriter, r *http.Request) {
+	templ.Handler(layout(con_boton_tema(login(error_message_credentials))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+
+}
+
 // POST /sign-in
 func (app *app) sign_in_handler(w http.ResponseWriter, r *http.Request) {
 
@@ -717,7 +726,7 @@ func (app *app) logout_handler(w http.ResponseWriter, r *http.Request) {
 		Expires: time.Now(),
 	})
 
-	templ.Handler(con_boton_tema(register(""), motto_contacts_app()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	templ.Handler(con_boton_tema(register("")), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 // GET /register
@@ -726,9 +735,9 @@ func (app *app) get_register_handler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html")
 
 	if r.Header.Get("HX-Request") == "true" {
-		templ.Handler(con_boton_tema(register(""), motto_contacts_app()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(con_boton_tema(register("")), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	} else {
-		templ.Handler(layout(con_boton_tema(register(""), motto_contacts_app())), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(layout(con_boton_tema(register(""))), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 	}
 }
 
@@ -749,7 +758,7 @@ func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
 	}
 	if user != nil {
 		log.Error("post_register_handler: user already exists: " + username)
-		templ.Handler(con_boton_tema(register(username_exists_error), motto_contacts_app()), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+		templ.Handler(con_boton_tema(register(username_exists_error)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 		return
 	}
 
@@ -791,7 +800,7 @@ func (app *app) post_register_handler(w http.ResponseWriter, r *http.Request) {
 		log.Error("post_register_handler: error in get_contact_list", "error", err)
 		return
 	}
-	templ.Handler(con_boton_tema(index(contact_list, "", 1, myArchiver, "Account created successfully"), profile_card(username)), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
+	templ.Handler(con_boton_tema(index(contact_list, "", 1, myArchiver, "Account created successfully")), templ.WithErrorHandler(templ_error)).ServeHTTP(w, r)
 }
 
 //------------------------------------------------------------------------------
